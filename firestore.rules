@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Admin lookup checks if user uid exists in /admins collection
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'valid.zarei.2afm@gmail.com'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity validation
+    function isValidV2ray(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 100
+        && (!('url' in data) || (data.url is string && data.url.size() <= 4096))
+        && (!('rawConfigs' in data) || (data.rawConfigs is string && data.rawConfigs.size() <= 65536))
+        && data.isActive is bool
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1024))
+        && (data.createdAt is string || data.createdAt is timestamp)
+        && (data.updatedAt is string || data.updatedAt is timestamp);
+    }
+
+    function isValidWg(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 100
+        && (!('configText' in data) || (data.configText is string && data.configText.size() <= 65536))
+        && data.isActive is bool
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1024))
+        && (data.createdAt is string || data.createdAt is timestamp)
+        && (data.updatedAt is string || data.updatedAt is timestamp);
+    }
+
+    function isValidAdmin(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 128;
+    }
+
+    // Matches
+    match /admins/{adminId} {
+      // Allow read for verification
+      allow read: if isSignedIn();
+      // Allow initial write for the owner email or existing admin
+      allow write: if isSignedIn() && (
+        request.auth.token.email == 'valid.zarei.2afm@gmail.com' ||
+        isAdmin()
+      );
+    }
+
+    match /v2ray_configs/{v2rayId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /wg_configs/{wgId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

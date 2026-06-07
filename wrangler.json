@@ -1,0 +1,14 @@
+{
+  "name": "estekhdam-ng-worker",
+  "main": "index.js",
+  "compatibility_date": "2024-04-03",
+  "kv_namespaces": [
+    {
+      "binding": "ESTEKHDAM_NG",
+      "id": "شناسه_kv_دلخواه_شما_یا_کلید_استخدام_ng"
+    }
+  ],
+  "vars": {
+    "BACKEND_URL": "https://ais-pre-73qrncgcbkck2mt4o5mupl-220596817889.europe-west1.run.app"
+  }
+}

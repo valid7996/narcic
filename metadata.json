@@ -1,0 +1,6 @@
+{
+  "name": "V2Ray & WireGuard Subscription Worker Manager",
+  "description": "An administrative dashboard to manage, share, download and instantly update dynamic proxy and tunnel configurations for v2rayNG and WireGuard apps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "v2ray_configs": {
+      "title": "v2ray_configs",
+      "description": "V2ray subscription links and configs managed by the admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "rawConfigs": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "isActive"]
+    },
+    "wg_configs": {
+      "title": "wg_configs",
+      "description": "WireGuard configs managed by the admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "configText": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "isActive"]
+    },
+    "admins": {
+      "title": "admins",
+      "description": "Authorized administrators",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "assignedAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/v2ray_configs/{v2rayId}": {
+      "schema": "v2ray_configs",
+      "description": "Collections of v2ray configs"
+    },
+    "/wg_configs/{wgId}": {
+      "schema": "wg_configs",
+      "description": "Collections of wireguard configs"
+    },
+    "/admins/{adminId}": {
+      "schema": "admins",
+      "description": "Authorized administrators list"
+    }
+  }
+}
