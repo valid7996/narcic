@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Narcic — Ledger</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f5ef; --line:#1c1c1c; --ink:#1c1c1c; --muted:#7a766c; --card:#ffffff;
+  --accent:#ff5a1f; --good:#1f7a4d; --bad:#c0392b; --warn:#b5860b;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Vazirmatn',sans-serif;background:var(--bg);color:var(--ink)}
+.mono{font-family:'JetBrains Mono',monospace;direction:ltr}
+
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:50}
+.login-box{width:400px;border:1.5px solid var(--line);background:var(--card);padding:0}
+.login-head{padding:16px 22px;border-bottom:1.5px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.login-head b{font-size:14px;letter-spacing:.04em}
+.login-head span{font-size:11px;color:var(--muted)}.mono-tag{font-family:'JetBrains Mono',monospace}
+.login-body{padding:30px 26px}
+.login-body h1{font-size:24px;margin:0 0 6px;font-weight:800}
+.login-body p{color:var(--muted);font-size:13px;margin:0 0 24px}
+.field label{display:block;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:6px;text-transform:uppercase}
+.field input{width:100%;padding:12px 14px;border:1.5px solid var(--line);background:transparent;font-size:14px;outline:none;margin-bottom:18px}
+.btn-block{width:100%;padding:13px;border:1.5px solid var(--line);background:var(--ink);color:#fff;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.03em}
+.btn-block:hover{background:var(--accent);border-color:var(--accent)}
+
+#app{display:none}
+.topnav{position:sticky;top:0;background:var(--bg);border-bottom:2px solid var(--line);z-index:10}
+.topnav-row1{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;border-bottom:1px solid #d9d5c8}
+.brandblock{display:flex;align-items:center;gap:10px}
+.brandblock .sq{width:30px;height:30px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.brandblock b{font-size:16px;font-weight:800}
+.statusline{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);display:flex;gap:16px}
+.statusline .ok{color:var(--good)}
+.logoutlink{font-size:12px;font-weight:700;color:var(--bad);cursor:pointer}
+.tabs{display:flex;gap:0;padding:0 28px;overflow-x:auto}
+.tab{padding:13px 18px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.tab.active{color:var(--ink);border-color:var(--accent)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:30px 28px 60px}
+.row-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;border-bottom:1.5px solid var(--line);padding-bottom:10px}
+.row-head h2{font-size:18px;margin:0;font-weight:800}
+.row-head .idx{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+
+.ledger-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1.5px solid var(--line);margin-bottom:24px}
+.lcell{padding:18px 18px;border-inline-end:1.5px solid var(--line)}
+.lcell:last-child{border-inline-end:none}
+.lcell .n{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700}
+.lcell .l{font-size:11px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.04em}
+.lcell .delta{font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:4px}
+.delta.up{color:var(--good)}.delta.down{color:var(--bad)}
+
+table.ledger{width:100%;border-collapse:collapse;border:1.5px solid var(--line)}
+table.ledger th{text-align:right;font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;
+  color:var(--muted);padding:10px 14px;border-bottom:1.5px solid var(--line);background:#efebe0}
+table.ledger td{padding:13px 14px;border-bottom:1px solid #e3dfd2;font-size:13.5px}
+table.ledger tr:last-child td{border-bottom:none}
+table.ledger tr:hover{background:#fbfaf6}
+.idtag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.status-flag{font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 6px;border:1px solid currentColor}
+.status-flag.on{color:var(--good)}.status-flag.off{color:var(--bad)}.status-flag.warn{color:var(--warn)}
+.linkbtn{font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:26px}
+.boxed{border:1.5px solid var(--line);padding:18px}
+.boxed h3{font-size:12px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin:0 0 16px;letter-spacing:.04em;color:var(--muted)}
+.barline{display:flex;align-items:center;gap:10px;margin-bottom:11px;font-size:12px}
+.barline .l{width:80px;color:var(--muted)}
+.barline .track{flex:1;height:10px;background:#efebe0;position:relative}
+.barline .fill{height:100%;background:var(--ink)}
+.barline .v{width:54px;text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px}
+
+.tab-content{display:none}.tab-content.show{display:block}
+@media(max-width:800px){.ledger-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-box">
+    <div class="login-head"><b>NARCIC</b><span class="mono-tag">v2.5.4.2</span></div>
+    <div class="login-body">
+      <h1>دسترسی به پنل</h1>
+      <p>طرح Ledger — رابط متنی و دفترداری</p>
+      <div class="field"><label>PASSWORD</label><input type="password" id="pwd"></div>
+      <button class="btn-block" onclick="document.getElementById('login').style.display='none';document.getElementById('app').style.display='block'">ورود →</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topnav">
+    <div class="topnav-row1">
+      <div class="brandblock"><div class="sq">N</div><b>NARCIC</b></div>
+      <div class="statusline">
+        <span><span class="ok">●</span> WORKER ONLINE</span>
+        <span>D1: CONNECTED</span>
+        <span class="logoutlink">خروج ✕</span>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="go(this,'t-over')">۰۱ / نمای کلی</div>
+      <div class="tab" onclick="go(this,'t-users')">۰۲ / کاربران</div>
+      <div class="tab" onclick="go(this,'t-end')">۰۳ / نقاط اتصال</div>
+      <div class="tab" onclick="go(this,'t-metrics')">۰۴ / متریک‌ها</div>
+      <div class="tab" onclick="go(this,'t-settings')">۰۵ / تنظیمات</div>
+      <div class="tab" onclick="go(this,'t-adv')">۰۶ / پیشرفته</div>
+      <div class="tab" onclick="go(this,'t-logs')">۰۷ / گزارش‌ها</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="tab-content show" id="t-over">
+      <div class="row-head"><h2>نمای کلی سیستم</h2><span class="idx mono">REC // 2026-06-27</span></div>
+      <div class="ledger-grid">
+        <div class="lcell"><div class="n">1,248</div><div class="l">کل کاربران</div><div class="delta up">▲ ۳.۲٪</div></div>
+        <div class="lcell"><div class="n">1,032</div><div class="l">فعال</div><div class="delta up">▲ ۱.۱٪</div></div>
+        <div class="lcell"><div class="n">96</div><div class="l">متوقف‌شده</div><div class="delta down">▼ ۰.۴٪</div></div>
+        <div class="lcell"><div class="n">120</div><div class="l">منقضی</div><div class="delta down">▼ ۲.۰٪</div></div>
+      </div>
+      <div class="two-col">
+        <div class="boxed">
+          <h3>traffic / last 5 days</h3>
+          <div class="barline"><div class="l">شنبه</div><div class="track"><div class="fill" style="width:62%"></div></div><div class="v mono">412GB</div></div>
+          <div class="barline"><div class="l">یکشنبه</div><div class="track"><div class="fill" style="width:74%"></div></div><div class="v mono">498GB</div></div>
+          <div class="barline"><div class="l">دوشنبه</div><div class="track"><div class="fill" style="width:48%"></div></div><div class="v mono">320GB</div></div>
+          <div class="barline"><div class="l">سه‌شنبه</div><div class="track"><div class="fill" style="width:88%"></div></div><div class="v mono">601GB</div></div>
+          <div class="barline"><div class="l">چهارشنبه</div><div class="track"><div class="fill" style="width:55%"></div></div><div class="v mono">370GB</div></div>
+        </div>
+        <div class="boxed">
+          <h3>quick actions</h3>
+          <p style="font-size:13px;color:var(--muted);margin-top:0">عملیات متداول مدیریتی:</p>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+            <button class="btn-block" style="background:var(--accent);border-color:var(--accent)">+ افزودن کاربر جدید</button>
+            <button class="btn-block" style="background:transparent;color:var(--ink)">پشتیبان‌گیری از تنظیمات</button>
+            <button class="btn-block" style="background:transparent;color:var(--ink)">بروزرسانی آمار</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="t-users">
+      <div class="row-head"><h2>فهرست کاربران</h2><span class="idx mono">TOTAL: 1248</span></div>
+      <table class="ledger">
+        <tr><th>#</th><th>نام</th><th>پروتکل</th><th>مصرف</th><th>انقضا</th><th>وضعیت</th><th></th></tr>
+        <tr><td class="idtag">001</td><td>آرمان رضایی</td><td class="mono">VLESS</td><td class="mono">42.1 / 100GB</td><td class="mono">1404-08-12</td><td><span class="status-flag on">ACTIVE</span></td><td><span class="linkbtn">مدیریت</span></td></tr>
+        <tr><td class="idtag">002</td><td>سحر حسینی</td><td class="mono">Trojan</td><td class="mono">8.4 / 50GB</td><td class="mono">1404-07-01</td><td><span class="status-flag warn">LOW</span></td><td><span class="linkbtn">مدیریت</span></td></tr>
+        <tr><td class="idtag">003</td><td>محمد کریمی</td><td class="mono">Shadowsocks</td><td class="mono">100 / 100GB</td><td class="mono">1404-06-20</td><td><span class="status-flag off">EXPIRED</span></td><td><span class="linkbtn">مدیریت</span></td></tr>
+      </table>
+    </div>
+    <div class="tab-content" id="t-end"><div class="boxed">پیکربندی نقاط اتصال (VLESS / Trojan / Shadowsocks) اینجا نمایش داده می‌شود.</div></div>
+    <div class="tab-content" id="t-metrics"><div class="boxed">نمودارهای زنده پینگ، پهنای باند و وضعیت نودها.</div></div>
+    <div class="tab-content" id="t-settings"><div class="boxed">تنظیمات عمومی پنل، دیتابیس و ربات تلگرام.</div></div>
+    <div class="tab-content" id="t-adv"><div class="boxed">گزینه‌های پیشرفته: کلاستر، مبهم‌سازی، کلیدهای API.</div></div>
+    <div class="tab-content" id="t-logs"><div class="boxed">تاریخچه فعالیت‌های اخیر پنل.</div></div>
+
+  </div>
+</div>
+
+<script>
+function go(el,id){
+  document.querySelectorAll('.tab').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+}
+</script>
+</body>
+</html>

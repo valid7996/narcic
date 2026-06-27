@@ -657,68 +657,38 @@ function serveSubscriptionInfoPage(user, host, url, request) {
         }
     <\/script>
     <style>
-        :root {
-            --bg-primary: #f8fafc;
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+        :root, .dark {
+            --bg-primary: #f7f5ef;
             --bg-card: #ffffff;
-            --bg-card-inner: #f1f5f9;
-            --bg-input: #f1f5f9;
-            --border-card: #e2e8f0;
-            --border-inner: #e2e8f0;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #94a3b8;
-            --accent: #6366f1;
-            --accent-light: #eef2ff;
-            --accent-border: #c7d2fe;
-            --accent-hover: #4f46e5;
-            --green-bg: #ecfdf5;
-            --green-border: #a7f3d0;
-            --green-text: #059669;
-            --amber-bg: #fffbeb;
-            --amber-border: #fde68a;
-            --amber-text: #d97706;
-            --red-bg: #fef2f2;
-            --red-border: #fecaca;
-            --red-text: #dc2626;
-            --progress-bg: #e2e8f0;
-            --shadow-card: 0 4px 24px rgba(0,0,0,0.06);
-            --btn-primary-bg: #6366f1;
-            --btn-primary-hover: #4f46e5;
-            --btn-secondary-bg: #f1f5f9;
-            --btn-secondary-hover: #e2e8f0;
-            --modal-bg: rgba(0,0,0,0.4);
+            --bg-card-inner: #ffffff;
+            --bg-input: #ffffff;
+            --border-card: #1c1c1c;
+            --border-inner: #ddd8c8;
+            --text-primary: #1c1c1c;
+            --text-secondary: #7a766c;
+            --text-muted: #9b9686;
+            --accent: #ff5a1f;
+            --accent-light: #fdeee5;
+            --accent-border: #1c1c1c;
+            --accent-hover: #e34c15;
+            --green-bg: #ffffff;
+            --green-border: #1f7a4d;
+            --green-text: #1f7a4d;
+            --amber-bg: #ffffff;
+            --amber-border: #b5860b;
+            --amber-text: #b5860b;
+            --red-bg: #ffffff;
+            --red-border: #c0392b;
+            --red-text: #c0392b;
+            --progress-bg: #efebe0;
+            --shadow-card: none;
+            --btn-primary-bg: #1c1c1c;
+            --btn-primary-hover: #ff5a1f;
+            --btn-secondary-bg: #ffffff;
+            --btn-secondary-hover: #efebe0;
+            --modal-bg: rgba(28,28,28,0.5);
             --modal-card: #ffffff;
-        }
-        .dark {
-            --bg-primary: #0d1117;
-            --bg-card: rgba(15, 20, 40, 0.8);
-            --bg-card-inner: rgba(15, 23, 42, 0.6);
-            --bg-input: #020617;
-            --border-card: rgba(99, 102, 241, 0.25);
-            --border-inner: rgba(99, 102, 241, 0.08);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #475569;
-            --accent: #818cf8;
-            --accent-light: rgba(99, 102, 241, 0.15);
-            --accent-border: rgba(99, 102, 241, 0.3);
-            --accent-hover: #6366f1;
-            --green-bg: rgba(16, 185, 129, 0.1);
-            --green-border: rgba(16, 185, 129, 0.25);
-            --green-text: #34d399;
-            --amber-bg: rgba(245, 158, 11, 0.1);
-            --amber-border: rgba(245, 158, 11, 0.25);
-            --amber-text: #fbbf24;
-            --red-bg: rgba(239, 68, 68, 0.1);
-            --red-border: rgba(239, 68, 68, 0.25);
-            --red-text: #f87171;
-            --progress-bg: rgba(30, 41, 59, 0.8);
-            --btn-primary-bg: #6366f1;
-            --btn-primary-hover: #4f46e5;
-            --btn-secondary-bg: rgba(30, 41, 59, 0.6);
-            --btn-secondary-hover: rgba(30, 41, 59, 0.9);
-            --modal-bg: rgba(0,0,0,0.7);
-            --modal-card: #0f172a;
         }
         body {
             font-family: 'Inter', 'Vazirmatn', sans-serif;
@@ -729,41 +699,62 @@ function serveSubscriptionInfoPage(user, host, url, request) {
         [lang="fa"] body { font-family: 'Vazirmatn', sans-serif; }
         .card-main {
             background: var(--bg-card) !important;
-            border: 1px solid var(--border-card) !important;
+            border: 1.5px solid var(--border-card) !important;
             box-shadow: var(--shadow-card) !important;
+            border-radius: 4px !important;
             transition: all 0.3s;
         }
         .card-inner {
             background: var(--bg-card-inner);
-            border: 1px solid var(--border-inner);
+            border: 1.5px solid var(--border-inner);
+            border-radius: 4px !important;
             transition: all 0.3s;
         }
         .input-field {
             background: var(--bg-input);
-            border: 1px solid var(--border-inner);
+            border: 1.5px solid var(--border-inner);
+            border-radius: 4px !important;
             color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        *[class*="rounded-2xl"], *[class*="rounded-xl"], *[class*="rounded-3xl"], *[class*="rounded-lg"] {
+            border-radius: 4px !important;
         }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
         .btn-primary {
             background: var(--btn-primary-bg);
             color: white;
+            border-radius: 4px !important;
         }
         .btn-primary:hover { background: var(--btn-primary-hover); }
         .btn-secondary {
             background: var(--btn-secondary-bg);
             color: var(--text-primary);
-            border: 1px solid var(--border-inner);
+            border: 1.5px solid var(--border-inner);
+            border-radius: 4px !important;
         }
         .btn-secondary:hover { background: var(--btn-secondary-hover); }
         .text-secondary { color: var(--text-secondary); }
         .text-muted { color: var(--text-muted); }
         .border-card-main { border-color: var(--border-card) !important; }
         .progress-bar-bg { background: var(--progress-bg); }
+        span[style*="color: var(--accent)"], .w-2\.5.h-2\.5[style*="background: var(--accent)"] {
+            background: var(--accent) !important;
+        }
+        #status-badge {
+            border-radius: 4px !important;
+            border: 1.5px solid var(--green-border);
+            background: transparent !important;
+            color: var(--green-text) !important;
+        }
+        .text-2xl, .text-lg.font-bold, #sub-norm {
+            font-family: 'JetBrains Mono', monospace !important;
+        }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         .modal-overlay { background: var(--modal-bg); }
-        .modal-card { background: var(--modal-card); border: 1px solid var(--border-card); }
+        .modal-card { background: var(--modal-card); border: 1.5px solid var(--border-card); border-radius: 4px !important; }
     </style>
 </head>
 <body class="min-h-screen py-6 px-4 flex flex-col items-center justify-center fade-in">
@@ -1494,7 +1485,7 @@ async function handleUpdateApi(request, env, ctx) {
         const accountId = sysConfig.cfAccountId;
         const apiToken = sysConfig.cfApiToken;
         const workerName = sysConfig.cfWorkerName;
-        const repo = (sysConfig.githubRepo || "itsyebekhe/nahan").replace(/https?:\/\/github\.com\//, '').trim();
+        const repo = (sysConfig.githubRepo || "itsyebekhe/narcic").replace(/https?:\/\/github\.com\//, '').trim();
 
         if (data.action === "check") {
             let remoteVer = null;
@@ -5416,6 +5407,146 @@ function getDashboardUI(hasDB) {
               }
           }
 
+          /* =====================================================
+             NARCIC — "LEDGER" THEME OVERRIDE
+             Light, minimal, hairline-bordered, ledger/terminal look.
+             Only visual rules — no structural / id / JS changes.
+             ===================================================== */
+          @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+          :root {
+              --ldg-bg:      #f7f5ef;
+              --ldg-ink:     #1c1c1c;
+              --ldg-muted:   #7a766c;
+              --ldg-card:    #ffffff;
+              --ldg-line:    #1c1c1c;
+              --ldg-hair:    #ddd8c8;
+              --ldg-accent:  #ff5a1f;
+              --ldg-good:    #1f7a4d;
+              --ldg-bad:     #c0392b;
+              --ldg-warn:    #b5860b;
+          }
+
+          html, html.dark, html.dark body, body {
+              background: var(--ldg-bg) !important;
+              background-image: none !important;
+              color: var(--ldg-ink) !important;
+          }
+
+          html.dark .bg-white, html.dark .bg-slate-50, html.dark .bg-indigo-50, html.dark .bg-darkcard,
+          .bg-white, .bg-slate-50, .bg-darkcard, .rounded-3xl.p-px, .rounded-3xl.p-px > div {
+              background: var(--ldg-card) !important;
+              border: 1.5px solid var(--ldg-line) !important;
+              border-radius: 4px !important;
+              box-shadow: none !important;
+          }
+          *[class*="rounded-2xl"], *[class*="rounded-xl"], *[class*="rounded-lg"], *[class*="rounded-3xl"] {
+              border-radius: 4px !important;
+          }
+          *[class*="backdrop-blur"] { backdrop-filter: none !important; }
+
+          html.dark aside, aside {
+              background: var(--ldg-card) !important;
+              border-inline-end: 1.5px solid var(--ldg-line) !important;
+              backdrop-filter: none !important;
+          }
+
+          body, h1, h2, h3, h4, p, span, label, button, input, select, textarea {
+              color: var(--ldg-ink);
+          }
+          .text-slate-200, .text-slate-300, .text-slate-400, .text-slate-500,
+          .dark .text-slate-300, .dark .text-slate-400 {
+              color: var(--ldg-muted) !important;
+          }
+          #pwd, .monospace-font, [id^="ov-"], [id^="stat-"], [id*="usage"], [id*="total"] {
+              font-family: 'JetBrains Mono', monospace !important;
+          }
+
+          .text-indigo-400, .text-violet-400, .text-primary, [style*="color:#818cf8"],
+          [style*="color: #818cf8"], [style*="color:#6366f1"] {
+              color: var(--ldg-ink) !important;
+          }
+          .bg-primary, [style*="background:linear-gradient(135deg,#6366f1"],
+          [style*="background:linear-gradient(135deg, #6366f1"] {
+              background: var(--ldg-accent) !important;
+              box-shadow: none !important;
+          }
+          button.login-btn, .login-btn {
+              background: var(--ldg-ink) !important;
+              box-shadow: none !important;
+              border-radius: 4px !important;
+          }
+          .login-btn:hover { background: var(--ldg-accent) !important; box-shadow: none !important; transform: none !important; }
+
+          input, select, textarea, .login-input {
+              background: var(--ldg-card) !important;
+              border: 1.5px solid var(--ldg-line) !important;
+              border-radius: 4px !important;
+              color: var(--ldg-ink) !important;
+              box-shadow: none !important;
+          }
+          input:focus, select:focus, textarea:focus, .login-input:focus {
+              border-color: var(--ldg-accent) !important;
+              background: var(--ldg-card) !important;
+              box-shadow: none !important;
+          }
+
+          .nav-item, .dark .nav-item, html:not(.dark) .nav-item {
+              border-inline-start: 3px solid transparent !important;
+              border-radius: 0 !important;
+          }
+          .nav-item span { letter-spacing: .02em; }
+          .nav-item.active, .dark .nav-item.active, html:not(.dark) .nav-item.active {
+              background: #efebe0 !important;
+              color: var(--ldg-ink) !important;
+              border-inline-start: 3px solid var(--ldg-accent) !important;
+              font-weight: 800 !important;
+          }
+          .nav-item:hover { background: #efebe0 !important; }
+
+          .text-emerald-400, .bg-emerald-500\/10, [style*="background:rgba(16,185,129"] {
+              color: var(--ldg-good) !important; background: transparent !important; border: 1px solid var(--ldg-good) !important;
+          }
+          .text-amber-400, .bg-amber-500\/10, [style*="background:rgba(245,158,11"] {
+              color: var(--ldg-warn) !important; background: transparent !important; border: 1px solid var(--ldg-warn) !important;
+          }
+          .text-rose-400, .text-red-400, [style*="background:rgba(239,68,68"] {
+              color: var(--ldg-bad) !important; background: transparent !important; border: 1px solid var(--ldg-bad) !important;
+          }
+
+          table { border-collapse: collapse !important; }
+          table th {
+              font-family: 'JetBrains Mono', monospace !important;
+              text-transform: uppercase; letter-spacing: .04em; font-size: 10.5px !important;
+              color: var(--ldg-muted) !important; border-bottom: 1.5px solid var(--ldg-line) !important;
+              background: #efebe0 !important;
+          }
+          table td { border-bottom: 1px solid var(--ldg-hair) !important; }
+          tr:hover td { background: #fbfaf6 !important; }
+
+          #top-version-badge, #github-link-btn, #lang-toggle, .btn-top-bar {
+              background: var(--ldg-card) !important;
+              border: 1.5px solid var(--ldg-line) !important;
+              border-radius: 4px !important;
+              color: var(--ldg-ink) !important;
+          }
+          #top-version-badge { font-family: 'JetBrains Mono', monospace !important; }
+
+          #qr-modal .rounded-2xl, #qr-modal .rounded-3xl { border-radius: 4px !important; }
+
+          .mobile-bottom-nav, html:not(.dark) .mobile-bottom-nav {
+              background: var(--ldg-card) !important;
+              backdrop-filter: none !important;
+              border-top: 1.5px solid var(--ldg-line) !important;
+          }
+          .mobile-tab-item.active, .dark .mobile-tab-item.active { color: var(--ldg-accent) !important; }
+          .mobile-tab-item.active::before { background: var(--ldg-accent) !important; }
+          .mobile-save-bar, html:not(.dark) .mobile-save-bar {
+              background: var(--ldg-card) !important;
+              backdrop-filter: none !important;
+              border-top: 1.5px solid var(--ldg-line) !important;
+          }
+
           /* Native save bar for mobile */
           @media (max-width: 767px) {
               .mobile-save-bar {
@@ -5467,7 +5598,7 @@ function getDashboardUI(hasDB) {
       <!-- Global Controls -->
       <div class="fixed top-4 end-4 md:top-5 md:end-5 flex items-center gap-2 z-50">
           <span id="top-version-badge" class="hidden md:inline-block px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);color:#818cf8;">v${CURRENT_VERSION}</span>
-          <a href="https://github.com/itsyebekhe/nahan" id="github-link-btn" target="_blank" class="hidden md:inline-flex btn-top-bar p-2 rounded-xl transition-all" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;">
+          <a href="https://github.com/itsyebekhe/narcic" id="github-link-btn" target="_blank" class="hidden md:inline-flex btn-top-bar p-2 rounded-xl transition-all" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path></svg>
           </a>
           <button onclick="toggleLang()" id="lang-toggle" class="btn-top-bar px-3 py-1.5 rounded-xl text-sm font-bold transition-all" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;">EN</button>
@@ -5639,7 +5770,7 @@ function getDashboardUI(hasDB) {
                           </div>
                           <div id="update-deploy-status" class="hidden w-full mt-3 p-3 rounded-xl text-sm font-bold text-center"></div>
                           <div class="w-full mt-2 text-center">
-                              <a id="update-github-link" href="https://github.com/itsyebekhe/nahan" target="_blank" class="text-xs text-slate-400 hover:text-amber-500 transition-colors underline" data-i18n="view_github">View on GitHub</a>
+                              <a id="update-github-link" href="https://github.com/itsyebekhe/narcic" target="_blank" class="text-xs text-slate-400 hover:text-amber-500 transition-colors underline" data-i18n="view_github">View on GitHub</a>
                           </div>
                       </div>
 
@@ -5937,7 +6068,7 @@ function getDashboardUI(hasDB) {
                               </div>
                               <div class="space-y-1 md:col-span-2">
                                   <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_github_repo">GitHub Update Repository</label>
-                                  <input type="text" id="cfg-github-repo" placeholder="itsyebekhe/nahan" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
+                                  <input type="text" id="cfg-github-repo" placeholder="itsyebekhe/narcic" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
                                   <div class="flex justify-start items-center gap-2 mt-2">
                                       <button type="button" onclick="triggerManualRedeploy()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-lg transition-colors border border-primary/20">
                                           🔄 <span data-i18n="btn_redeploy_force">Force Redeploy / Switch Format</span>
@@ -6227,7 +6358,7 @@ function getDashboardUI(hasDB) {
                                       </div>
                                       <div>
                                           <label class="block text-xs font-bold text-slate-500 mb-1" data-i18n="add_node_apikey">API Key</label>
-                                          <input type="password" id="add-node-apikey" placeholder="nahan_..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono pe-12">
+                                          <input type="password" id="add-node-apikey" placeholder="narcic_..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono pe-12">
                                           <button type="button" onclick="const n=document.getElementById('add-node-apikey');n.type=n.type==='password'?'text':'password'" class="absolute end-14 mt-[-36px] px-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">👁️</button>
                                       </div>
                                   </div>
@@ -6298,7 +6429,7 @@ function getDashboardUI(hasDB) {
                                       </div>
                                       <div class="space-y-1">
                                           <label class="block text-sm font-bold text-slate-600 dark:text-slate-300" data-i18n="lbl_cf_worker">CF Worker Script Name</label>
-                                          <input type="text" id="cfg-cf-worker" placeholder="e.g. nahan" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono">
+                                          <input type="text" id="cfg-cf-worker" placeholder="e.g. narcic" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono">
                                           <p class="text-xs text-slate-400" data-i18n="desc_cf_worker">Required for in-panel updates. The script name shown in your Cloudflare Workers dashboard.</p>
                                       </div>
                                       <p class="text-xs text-slate-400" data-i18n="desc_cf_api">Optional: Monitor Worker free usage limits (100k/day). Needs Account Analytics Read permission.</p>
@@ -7397,7 +7528,7 @@ function getDashboardUI(hasDB) {
           }
 
           function checkVersionPopup() {
-              const popupKey = \`nahan_shown_v\${CURRENT_VERSION}\`;
+              const popupKey = \`narcic_shown_v\${CURRENT_VERSION}\`;
               if (!localStorage.getItem(popupKey)) {
                   setTimeout(() => {
                       const badge = document.getElementById('modal-version-badge');
@@ -7418,7 +7549,7 @@ function getDashboardUI(hasDB) {
                   m.classList.add('hidden');
                   m.classList.remove('flex');
               }
-              const popupKey = \`nahan_shown_v\${CURRENT_VERSION}\`;
+              const popupKey = \`narcic_shown_v\${CURRENT_VERSION}\`;
               localStorage.setItem(popupKey, 'true');
           }
   
@@ -7625,23 +7756,23 @@ function getDashboardUI(hasDB) {
                   alert(t.add_node_invalid || 'Please enter both URL and API Key.');
                   return;
               }
-              if (!window.nahanConfig) window.nahanConfig = {};
-              if (!Array.isArray(window.nahanConfig.linkedPanels)) window.nahanConfig.linkedPanels = [];
-              window.nahanConfig.linkedPanels.push({ url, apiKey });
+              if (!window.narcicConfig) window.narcicConfig = {};
+              if (!Array.isArray(window.narcicConfig.linkedPanels)) window.narcicConfig.linkedPanels = [];
+              window.narcicConfig.linkedPanels.push({ url, apiKey });
               document.getElementById('modal-add-node').classList.add('hidden');
               renderLinkedNodes();
           }
 
           function removeLinkedNode(idx) {
-              if (!window.nahanConfig || !Array.isArray(window.nahanConfig.linkedPanels)) return;
-              window.nahanConfig.linkedPanels.splice(idx, 1);
+              if (!window.narcicConfig || !Array.isArray(window.narcicConfig.linkedPanels)) return;
+              window.narcicConfig.linkedPanels.splice(idx, 1);
               renderLinkedNodes();
           }
 
           function renderLinkedNodes() {
               const list = document.getElementById('linked-nodes-list');
               if (!list) return;
-              const panels = (window.nahanConfig && Array.isArray(window.nahanConfig.linkedPanels)) ? window.nahanConfig.linkedPanels : [];
+              const panels = (window.narcicConfig && Array.isArray(window.narcicConfig.linkedPanels)) ? window.narcicConfig.linkedPanels : [];
               if (panels.length === 0) {
                   list.innerHTML = '<p class="text-xs text-slate-400 dark:text-slate-500 italic">' + ((i18n[lang] || i18n['en']).no_nodes_advanced || 'No external nodes added yet.') + '</p>';
                   return;
@@ -7748,12 +7879,12 @@ function getDashboardUI(hasDB) {
                   subUserAgent: el('cfg-sub-ua').value,
                   customPanelUrl: el('cfg-custom-panel-url').value,
                   fakeConfigs: getFakeConfigsFromUI(),
-                  linkedPanels: (window.nahanConfig && Array.isArray(window.nahanConfig.linkedPanels)) ? window.nahanConfig.linkedPanels : []
+                  linkedPanels: (window.narcicConfig && Array.isArray(window.narcicConfig.linkedPanels)) ? window.narcicConfig.linkedPanels : []
               };
               const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
               const dlAnchor = document.createElement('a');
               dlAnchor.setAttribute("href", dataStr);
-              dlAnchor.setAttribute("download", "nahan-gateway-config.json");
+              dlAnchor.setAttribute("download", "narcic-gateway-config.json");
               document.body.appendChild(dlAnchor);
               dlAnchor.click();
               dlAnchor.remove();
@@ -7809,8 +7940,8 @@ function getDashboardUI(hasDB) {
                       
                       if (conf.fakeConfigs) renderFakeConfigs(conf.fakeConfigs);
                       if (conf.linkedPanels) {
-                          if (!window.nahanConfig) window.nahanConfig = {};
-                          window.nahanConfig.linkedPanels = conf.linkedPanels;
+                          if (!window.narcicConfig) window.narcicConfig = {};
+                          window.narcicConfig.linkedPanels = conf.linkedPanels;
                           renderLinkedNodes();
                       }
                       
@@ -7932,7 +8063,7 @@ function getDashboardUI(hasDB) {
                       document.getElementById('cfg-cf-worker').value = conf.cfWorkerName || '';
                       document.getElementById('cfg-pause').checked = conf.isPaused || false;
                       document.getElementById('cfg-silent').checked = conf.silentAlerts || false;
-                      document.getElementById('cfg-github-repo').value = conf.githubRepo || 'itsyebekhe/nahan';
+                      document.getElementById('cfg-github-repo').value = conf.githubRepo || 'itsyebekhe/narcic';
                       document.getElementById('cfg-name-strategy').value = conf.nameStrategy || 'default';
                       document.getElementById('cfg-name-prefix').value = conf.namePrefix || 'Core';
                       document.getElementById('cfg-sub-ua').value = conf.subUserAgent || '';
@@ -7942,9 +8073,9 @@ function getDashboardUI(hasDB) {
                           { name: "📅 {expiry}", enabled: true }
                       ]);
   
-                      window.nahanConfig = JSON.parse(JSON.stringify(conf));
-                      window.nahanUsage = data.sysUsage || {};
-                      window.nahanProfiles = data.profiles || [];
+                      window.narcicConfig = JSON.parse(JSON.stringify(conf));
+                      window.narcicUsage = data.sysUsage || {};
+                      window.narcicProfiles = data.profiles || [];
                       renderUsersTable();
                       renderLinkedNodes();
                       try { checkUpdate(); } catch(ue) { console.error(ue); }
@@ -8049,12 +8180,12 @@ function getDashboardUI(hasDB) {
                       nameStrategy: el('cfg-name-strategy').value,
                       namePrefix: el('cfg-name-prefix').value,
                       fakeConfigs: getFakeConfigsFromUI(),
-                      linkedPanels: (window.nahanConfig && Array.isArray(window.nahanConfig.linkedPanels)) ? window.nahanConfig.linkedPanels : []
+                      linkedPanels: (window.narcicConfig && Array.isArray(window.narcicConfig.linkedPanels)) ? window.narcicConfig.linkedPanels : []
                   }
               };
                         //update user port after change global
                      const globalPorts = (payload.config.socketPorts || '443').split(',').map(s=>s.trim()).filter(Boolean);
-                     payload.config.users = (window.nahanConfig.users || []).map(u => {
+                     payload.config.users = (window.narcicConfig.users || []).map(u => {
                      if (!u.userPorts) return u;
                         const filtered = u.userPorts.split(',').map(s=>s.trim()).filter(p => globalPorts.includes(p));
                       u.userPorts = filtered.length ? filtered.join(',') : globalPorts[0];
@@ -8066,14 +8197,14 @@ function getDashboardUI(hasDB) {
                   const data = await res.json();
                   if (data.success) {
                       stat.textContent = i18n[lang].msg_saved; stat.className = "text-sm font-bold text-emerald-500 md:me-4";
-                      if (Array.isArray(window.nahanConfig?.linkedPanels) && window.nahanConfig.linkedPanels.length > 0) {
+                      if (Array.isArray(window.narcicConfig?.linkedPanels) && window.narcicConfig.linkedPanels.length > 0) {
                           const sc = payload.config;
                           const slaveCfg = { ...sc };
                           delete slaveCfg.tgToken; delete slaveCfg.tgChatId; delete slaveCfg.tgAdminId; delete slaveCfg.tgBotLang;
                           delete slaveCfg.cfAccountId; delete slaveCfg.cfApiToken; delete slaveCfg.cfWorkerName;
                           delete slaveCfg.panelApiKeys; delete slaveCfg.linkedPanels; delete slaveCfg.slaveNodes; delete slaveCfg.syncApiKey;
                           const synced = new Set();
-                          window.nahanConfig.linkedPanels.forEach(p => {
+                          window.narcicConfig.linkedPanels.forEach(p => {
                               if (!p || !p.url || !p.apiKey) return;
                               const h = p.url.trim().replace(/^https?:\\/\\//, '').replace(/\\/.*$/, '');
                               if (!h || synced.has(h.toLowerCase())) return;
@@ -8095,8 +8226,8 @@ function getDashboardUI(hasDB) {
           function renderUsersTable() {
               const tbl = document.getElementById('tbl-users');
               if(!tbl) return;
-              let users = window.nahanConfig?.users || [];
-              let usage = window.nahanUsage || {};
+              let users = window.narcicConfig?.users || [];
+              let usage = window.narcicUsage || {};
               
               // Calculate stats metrics
               let totalUsersVal = users.length;
@@ -8238,7 +8369,7 @@ function getDashboardUI(hasDB) {
                       \`;
                   }
 
-                  let rawSync = window.nahanProfiles?.find(p => p.id === u.id)?.sync || '';
+                  let rawSync = window.narcicProfiles?.find(p => p.id === u.id)?.sync || '';
                   if (rawSync) {
                       rawSync += rawSync.includes('?') ? '&flag=a' : '?flag=a';
                   }
@@ -8331,8 +8462,8 @@ function getDashboardUI(hasDB) {
           function deleteUser(uuid) {
               const deleteMsg = lang === 'fa' ? 'آیا از حذف این کاربر مطمئن هستید؟' : 'Are you sure you want to delete this user?';
               if(!confirm(deleteMsg)) return;
-              if(window.nahanConfig && window.nahanConfig.users) {
-                  window.nahanConfig.users = window.nahanConfig.users.filter(u => u.id !== uuid);
+              if(window.narcicConfig && window.narcicConfig.users) {
+                  window.narcicConfig.users = window.narcicConfig.users.filter(u => u.id !== uuid);
               }
               // Automatically sync
               renderUsersTable();
@@ -8340,8 +8471,8 @@ function getDashboardUI(hasDB) {
           }
 
           function togglePauseUser(uuid) {
-              if(window.nahanConfig && window.nahanConfig.users) {
-                  let usr = window.nahanConfig.users.find(u => u.id === uuid);
+              if(window.narcicConfig && window.narcicConfig.users) {
+                  let usr = window.narcicConfig.users.find(u => u.id === uuid);
                   if (usr) {
                       usr.isPaused = !usr.isPaused;
                       if (!usr.isPaused) {
@@ -8355,13 +8486,13 @@ function getDashboardUI(hasDB) {
           }
 
           function getGlobalPorts() {
-              return (window.nahanConfig && window.nahanConfig.socketPorts)
-                  ? window.nahanConfig.socketPorts.split(',').map(s=>s.trim()).filter(Boolean)
+              return (window.narcicConfig && window.narcicConfig.socketPorts)
+                  ? window.narcicConfig.socketPorts.split(',').map(s=>s.trim()).filter(Boolean)
                   : ['443'];
           }
 
           function getGlobalMode() {
-              return (window.nahanConfig && window.nahanConfig.mode) ? window.nahanConfig.mode : 'alpha';
+              return (window.narcicConfig && window.narcicConfig.mode) ? window.narcicConfig.mode : 'alpha';
           }
 
           function openAddUserPage() {
@@ -8374,8 +8505,8 @@ function getDashboardUI(hasDB) {
               updateTitleText('Add User');
               buildPortCheckboxes('add-user-ports-wrap', null);
               buildModeCheckboxes('add-user-mode-wrap', null);
-              buildIPCheckboxes("add-user-clean-ips-wrap", "", (window.nahanConfig?.cleanIps||"").split(/[\\s,;]+/).map(s=>s.trim()).filter(Boolean));
-              buildIPCheckboxes("add-user-proxy-ips-wrap", "", (window.nahanConfig?.backupRelay||"").split(/[\\s,;]+/).map(s=>s.trim()).filter(Boolean));
+              buildIPCheckboxes("add-user-clean-ips-wrap", "", (window.narcicConfig?.cleanIps||"").split(/[\\s,;]+/).map(s=>s.trim()).filter(Boolean));
+              buildIPCheckboxes("add-user-proxy-ips-wrap", "", (window.narcicConfig?.backupRelay||"").split(/[\\s,;]+/).map(s=>s.trim()).filter(Boolean));
               buildNodeCheckboxes("add-user-nodes-wrap", "", getGlobalNodeList());
           }
           function closeAddUserPage() {
@@ -8434,8 +8565,8 @@ function getSelectedCheckboxes(wrapId) {
     return checked.join(',');
 }
 function getGlobalNodeList() {
-    var nodes = (window.nahanConfig && window.nahanConfig.slaveNodes ? window.nahanConfig.slaveNodes : "").split(/[\\s,;]+/).map(function(s){return s.trim();}).filter(Boolean);
-    var lp = (window.nahanConfig && Array.isArray(window.nahanConfig.linkedPanels)) ? window.nahanConfig.linkedPanels : [];
+    var nodes = (window.narcicConfig && window.narcicConfig.slaveNodes ? window.narcicConfig.slaveNodes : "").split(/[\\s,;]+/).map(function(s){return s.trim();}).filter(Boolean);
+    var lp = (window.narcicConfig && Array.isArray(window.narcicConfig.linkedPanels)) ? window.narcicConfig.linkedPanels : [];
     lp.forEach(function(p){
         var raw = (p && typeof p === 'object') ? (p.url || '') : (p || '');
         raw = String(raw).trim();
@@ -8551,10 +8682,10 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
                   return;
               }
 
-              if(!window.nahanConfig) window.nahanConfig = {};
-              if(!window.nahanConfig.users) window.nahanConfig.users = [];
+              if(!window.narcicConfig) window.narcicConfig = {};
+              if(!window.narcicConfig.users) window.narcicConfig.users = [];
 
-              if(window.nahanConfig.users.some(u => u.name.trim().toLowerCase() === name.toLowerCase())) {
+              if(window.narcicConfig.users.some(u => u.name.trim().toLowerCase() === name.toLowerCase())) {
                   alert(lang === 'fa' ? 'این نام قبلاً استفاده شده است' : 'This name is already taken');
                   return;
               }
@@ -8588,7 +8719,7 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
                      createdAt: Date.now()
                 };
               
-              window.nahanConfig.users.push(u);
+              window.narcicConfig.users.push(u);
               document.getElementById('view-add-user').classList.add('hidden');
               document.getElementById('view-users').classList.remove('hidden');
               var sc = document.querySelector('.scroll-content');
@@ -8613,15 +8744,15 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
           }
 
           function editUser(uuid) {
-              if(!window.nahanConfig || !window.nahanConfig.users) return;
-              let u = window.nahanConfig.users.find(usr => usr.id === uuid);
+              if(!window.narcicConfig || !window.narcicConfig.users) return;
+              let u = window.narcicConfig.users.find(usr => usr.id === uuid);
               if(!u) return;
               
               document.getElementById('edit-user-id').value = u.id;
               document.getElementById('edit-user-name').value = u.name;
               document.getElementById('edit-user-total-reqs').value = u.limitTotalReq? (u.limitTotalReq / 6000).toFixed(2): '';
               document.getElementById('edit-user-daily-reqs').value = u.limitDailyReq? (u.limitDailyReq / 6000).toFixed(2): '';
-                            const globalCleanIps = (window.nahanConfig?.cleanIps||"").split(/[\\r\\n,;]+/).map(s=>s.trim()).filter(Boolean);
+                            const globalCleanIps = (window.narcicConfig?.cleanIps||"").split(/[\\r\\n,;]+/).map(s=>s.trim()).filter(Boolean);
               const userCleanIps = (u.cleanIp || "").split(/[\\r\\n,;]+/).map(s=>s.trim()).filter(Boolean);
               const checkedGlobalClean = [];
               const customClean = [];
@@ -8634,7 +8765,7 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
               buildIPCheckboxes("edit-user-clean-ips-wrap", checkedGlobalClean.join(','), globalCleanIps);
               document.getElementById('edit-user-custom-clean').value = customClean.join(', ');
 
-              const globalProxyIps = (window.nahanConfig?.backupRelay||"").split(/[\\r\\n,;]+/).map(s=>s.trim()).filter(Boolean);
+              const globalProxyIps = (window.narcicConfig?.backupRelay||"").split(/[\\r\\n,;]+/).map(s=>s.trim()).filter(Boolean);
               const userProxyIps = (u.proxyIp || "").split(/[\\r\\n,;]+/).map(s=>s.trim()).filter(Boolean);
               const checkedGlobalProxy = [];
               const customProxy = [];
@@ -8734,14 +8865,14 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
               dReq = dReq ? parseInt(dReq) : null;
               days = days ? parseInt(days) : null;
               
-              if(!window.nahanConfig || !window.nahanConfig.users) return;
+              if(!window.narcicConfig || !window.narcicConfig.users) return;
 
-              if(window.nahanConfig.users.some(u => u.id !== uuid && u.name.trim().toLowerCase() === name.toLowerCase())) {
+              if(window.narcicConfig.users.some(u => u.id !== uuid && u.name.trim().toLowerCase() === name.toLowerCase())) {
                   alert(lang === 'fa' ? 'این نام قبلاً استفاده شده است' : 'This name is already taken');
                   return;
               }
 
-              let u = window.nahanConfig.users.find(usr => usr.id === uuid);
+              let u = window.narcicConfig.users.find(usr => usr.id === uuid);
               if(!u) return;
               
               u.name = name;
@@ -8848,7 +8979,7 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
                   const res = await fetch(baseRoute + '/api/sync', {
                       method: 'POST',
                       headers: {'Content-Type': 'application/json'},
-                      body: JSON.stringify({ key: sessionKey, config: window.nahanConfig })
+                      body: JSON.stringify({ key: sessionKey, config: window.narcicConfig })
                   });
                   if(res.ok) {
                        const stat = document.getElementById('save-status');
@@ -8943,15 +9074,15 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
                   const data = await res.json();
                   if (data.success && data.updateAvailable) {
                       window._updateData = data;
-                      if (window.nahanConfig?.autoUpdate && data.canDeploy) {
-                          const format = window.nahanConfig.autoUpdateFormat || 'normal';
+                      if (window.narcicConfig?.autoUpdate && data.canDeploy) {
+                          const format = window.narcicConfig.autoUpdateFormat || 'normal';
                           const formatEl = document.querySelector(\`input[name="auto-update-format"][value="\${format}"]\`);
                           if (formatEl) formatEl.checked = true;
                           const autoRadio = document.querySelector(\`input[name="auto-update-format"][value="\${format}"]\`);
                           if (autoRadio) autoRadio.checked = true;
                           doUpdate();
                       } else {
-                          showUpdateBanner((document.getElementById('cfg-github-repo')?.value || window.nahanConfig?.githubRepo || 'itsyebekhe/nahan').replace('https://github.com/', '').replace('http://github.com/', '').trim(), data.latest);
+                          showUpdateBanner((document.getElementById('cfg-github-repo')?.value || window.narcicConfig?.githubRepo || 'itsyebekhe/narcic').replace('https://github.com/', '').replace('http://github.com/', '').trim(), data.latest);
                       }
                   }
                   if (data.success && !data.canDeploy) {
@@ -8988,7 +9119,7 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
 
               let latestCode = null;
               try {
-                  const repo = (document.getElementById('cfg-github-repo')?.value || window.nahanConfig?.githubRepo || 'itsyebekhe/nahan').replace('https://github.com/', '').replace('http://github.com/', '').trim();
+                  const repo = (document.getElementById('cfg-github-repo')?.value || window.narcicConfig?.githubRepo || 'itsyebekhe/narcic').replace('https://github.com/', '').replace('http://github.com/', '').trim();
                   if (statusEl) statusEl.textContent = '📥 ' + (lang === 'fa' ? 'در حال دریافت کد از مخزن گیت‌هاب...' : 'Fetching latest code from GitHub...');
                   const fetchRes = await fetch('https://raw.githubusercontent.com/' + repo + '/main/_worker.js');
                   if (!fetchRes.ok) throw new Error('HTTP ' + fetchRes.status);
@@ -9064,7 +9195,7 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
                   window._updateData = { latest: CURRENT_VERSION, updateAvailable: false };
               }
               
-              const repo = (document.getElementById('cfg-github-repo')?.value || window.nahanConfig?.githubRepo || 'itsyebekhe/nahan').replace('https://github.com/', '').replace('http://github.com/', '').trim();
+              const repo = (document.getElementById('cfg-github-repo')?.value || window.narcicConfig?.githubRepo || 'itsyebekhe/narcic').replace('https://github.com/', '').replace('http://github.com/', '').trim();
               
               showUpdateBanner(repo, CURRENT_VERSION);
               

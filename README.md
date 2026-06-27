@@ -4,7 +4,7 @@
 
 **پنل پروکسی معکوس بدون سرور بر بستر Cloudflare**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-7c6fff?style=flat-square)]([https://github.com/narcic/narcic](https://github.com/valid7996/narcic/releases/tag/Narcic))
+[![Version](https://img.shields.io/badge/version-1.0.0-7c6fff?style=flat-square)](https://github.com/narcic/narcic)
 [![License](https://img.shields.io/badge/license-MIT-00e5b0?style=flat-square)](LICENSE)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?style=flat-square&logo=cloudflare)](https://workers.cloudflare.com)
 
