@@ -5,7 +5,7 @@ import { connect } from "cloudflare:sockets";
  * Handles real-time binary streams from remote sensor nodes.
  */
 
-const CURRENT_VERSION = "1.0.0";
+const CURRENT_VERSION = "1.0.3";
 
 const getAlpha = () => String.fromCharCode(118, 108, 101, 115, 115);
 const getBeta = () => String.fromCharCode(116, 114, 111, 106, 97, 110);
@@ -68,6 +68,9 @@ const SYSTEM_DEFAULTS = {
     enableDirectConfigs: false,
     autoUpdate: false,
     autoUpdateFormat: "normal",
+    sessionTimeoutMin: 30,
+    dashboardDensity: "comfortable",
+    skipDeleteConfirm: false,
     fakeConfigs: [
         { name: "📊 {usage}", enabled: true },
         { name: "📅 {expiry}", enabled: true }
@@ -552,7 +555,81 @@ export default {
             return new Response(null, { status: 404 });
         }
     },
+
+    async scheduled(event, env, ctx) {
+        ctx.waitUntil(runAutoUpdateCheck(env, ctx));
+    },
 };
+
+async function runAutoUpdateCheck(env, ctx) {
+    try {
+        await loadSysConfig(env);
+
+        if (!sysConfig.autoUpdate) return;
+
+        const accountId = sysConfig.cfAccountId;
+        const apiToken = sysConfig.cfApiToken;
+        const workerName = sysConfig.cfWorkerName;
+        if (!accountId || !apiToken || !workerName) return;
+
+        const repo = (sysConfig.githubRepo || "itsyebekhe/narcic").replace(/https?:\/\/github\.com\//, '').trim();
+
+        let remoteVer = null;
+        try {
+            const res = await fetch(`https://raw.githubusercontent.com/${repo}/main/version`, { cf: { cacheTtl: 0 } });
+            if (res.ok) {
+                const txt = (await res.text()).trim();
+                if (txt && txt.length <= 15) remoteVer = txt;
+            }
+        } catch (e) {}
+
+        if (!remoteVer) {
+            try {
+                const res = await fetch(`https://raw.githubusercontent.com/${repo}/main/_worker.js`, { cf: { cacheTtl: 0 } });
+                if (res.ok) {
+                    const code = await res.text();
+                    const match = code.match(/const\s+CURRENT_VERSION\s*=\s*["']([^"']+)["']/);
+                    if (match) remoteVer = match[1];
+                }
+            } catch (e) {}
+        }
+
+        if (!remoteVer) return;
+        if (cmpVersions(CURRENT_VERSION, remoteVer) >= 0) return;
+
+        let newCode = null;
+        try {
+            const res = await fetch(`https://raw.githubusercontent.com/${repo}/main/_worker.js`, { cf: { cacheTtl: 0 } });
+            if (!res.ok) return;
+            newCode = await res.text();
+        } catch (e) { return; }
+
+        const versionMatch = newCode.match(/const\s+CURRENT_VERSION\s*=\s*["']([^"']+)["']/);
+        const newVersion = versionMatch ? versionMatch[1] : remoteVer;
+        if (cmpVersions(CURRENT_VERSION, newVersion) >= 0) return;
+
+        const deployRes = await deployWorkerToCloudflare(accountId, apiToken, workerName, newCode);
+        const deployResult = await deployRes.json();
+
+        if (deployResult.success) {
+            await logActivity(env, "Panel Auto-Updated (Cron)", `v${CURRENT_VERSION} → v${newVersion}`).catch(() => {});
+            if (sysConfig.tgToken && (sysConfig.tgAdminId || sysConfig.tgChatId)) {
+                const tgMsg = `🔄 <b>Panel Auto-Updated</b> (Cron)\n\n📦 v${CURRENT_VERSION} → v${newVersion}`;
+                const notifyChatId = sysConfig.tgAdminId || sysConfig.tgChatId;
+                await fetch(`https://api.telegram.org/bot${sysConfig.tgToken}/sendMessage`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: notifyChatId, text: tgMsg, parse_mode: 'HTML' })
+                }).catch(() => {});
+            }
+        } else {
+            const errMsg = deployResult.errors?.[0]?.message || "Unknown API error";
+            await logActivity(env, "Panel Auto-Update Failed (Cron)", errMsg).catch(() => {});
+        }
+    } catch (e) {
+        try { await logActivity(env, "Panel Auto-Update Error (Cron)", e.message).catch(() => {}); } catch (e2) {}
+    }
+}
+
 
 async function serveMaintenancePage(request, url) {
     let fakeList = sysConfig.maintenanceHost ? sysConfig.maintenanceHost.split(',').map(s => s.trim()).filter(s => s) : ["https://www.ubuntu.com"];
@@ -657,82 +734,89 @@ function serveSubscriptionInfoPage(user, host, url, request) {
         }
     <\/script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap');
         :root, .dark {
-            --bg-primary: #f7f5ef;
-            --bg-card: #ffffff;
-            --bg-card-inner: #ffffff;
-            --bg-input: #ffffff;
-            --border-card: #1c1c1c;
-            --border-inner: #ddd8c8;
-            --text-primary: #1c1c1c;
-            --text-secondary: #7a766c;
-            --text-muted: #9b9686;
-            --accent: #ff5a1f;
-            --accent-light: #fdeee5;
-            --accent-border: #1c1c1c;
-            --accent-hover: #e34c15;
-            --green-bg: #ffffff;
-            --green-border: #1f7a4d;
-            --green-text: #1f7a4d;
-            --amber-bg: #ffffff;
-            --amber-border: #b5860b;
-            --amber-text: #b5860b;
-            --red-bg: #ffffff;
-            --red-border: #c0392b;
-            --red-text: #c0392b;
-            --progress-bg: #efebe0;
-            --shadow-card: none;
-            --btn-primary-bg: #1c1c1c;
-            --btn-primary-hover: #ff5a1f;
-            --btn-secondary-bg: #ffffff;
-            --btn-secondary-hover: #efebe0;
-            --modal-bg: rgba(28,28,28,0.5);
-            --modal-card: #ffffff;
+            --bg-primary: #07020f;
+            --bg-card: rgba(15, 6, 35, 0.7);
+            --bg-card-inner: rgba(0, 240, 255, 0.04);
+            --bg-input: rgba(7, 2, 15, 0.6);
+            --border-card: rgba(0, 240, 255, 0.35);
+            --border-inner: rgba(0, 240, 255, 0.16);
+            --text-primary: #eafcff;
+            --text-secondary: #7c8aa5;
+            --text-muted: #586a8a;
+            --accent: #00f0ff;
+            --accent-light: rgba(0, 240, 255, 0.1);
+            --accent-border: #00f0ff;
+            --accent-hover: #ff00e6;
+            --green-bg: rgba(57,255,158,0.08);
+            --green-border: #39ff9e;
+            --green-text: #39ff9e;
+            --amber-bg: rgba(255,212,0,0.08);
+            --amber-border: #ffd400;
+            --amber-text: #ffd400;
+            --red-bg: rgba(255,41,101,0.08);
+            --red-border: #ff2965;
+            --red-text: #ff2965;
+            --progress-bg: rgba(0,240,255,0.08);
+            --shadow-card: 0 0 0 1px rgba(0,240,255,0.06), 0 12px 45px rgba(176,38,255,0.18);
+            --btn-primary-bg: linear-gradient(135deg,#00f0ff,#b026ff);
+            --btn-primary-hover: linear-gradient(135deg,#ff00e6,#b026ff);
+            --btn-secondary-bg: rgba(0,240,255,0.06);
+            --btn-secondary-hover: rgba(176,38,255,0.12);
+            --modal-bg: rgba(2,0,8,0.75);
+            --modal-card: #0d0420;
         }
         body {
             font-family: 'Inter', 'Vazirmatn', sans-serif;
-            background: var(--bg-primary) !important;
+            background: radial-gradient(1100px 650px at 90% -10%, rgba(176,38,255,0.22), transparent),
+                        radial-gradient(900px 600px at 0% 110%, rgba(0,240,255,0.16), transparent),
+                        var(--bg-primary) !important;
             color: var(--text-primary);
             transition: background 0.3s, color 0.3s;
         }
         [lang="fa"] body { font-family: 'Vazirmatn', sans-serif; }
+        h1, h2 { font-family: 'Orbitron','Vazirmatn',sans-serif !important; letter-spacing:.02em; text-shadow:0 0 16px rgba(0,240,255,.35); }
         .card-main {
             background: var(--bg-card) !important;
-            border: 1.5px solid var(--border-card) !important;
+            border: 1px solid var(--border-card) !important;
             box-shadow: var(--shadow-card) !important;
-            border-radius: 4px !important;
+            border-radius: 18px !important;
+            backdrop-filter: blur(16px);
             transition: all 0.3s;
         }
         .card-inner {
             background: var(--bg-card-inner);
-            border: 1.5px solid var(--border-inner);
-            border-radius: 4px !important;
+            border: 1px solid var(--border-inner);
+            border-radius: 14px !important;
             transition: all 0.3s;
         }
         .input-field {
             background: var(--bg-input);
-            border: 1.5px solid var(--border-inner);
-            border-radius: 4px !important;
+            border: 1px solid var(--border-inner);
+            border-radius: 12px !important;
             color: var(--text-primary);
             font-family: 'JetBrains Mono', monospace;
+            box-shadow: inset 0 0 14px rgba(0,240,255,0.05);
         }
         *[class*="rounded-2xl"], *[class*="rounded-xl"], *[class*="rounded-3xl"], *[class*="rounded-lg"] {
-            border-radius: 4px !important;
+            border-radius: 14px !important;
         }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; box-shadow:0 0 8px var(--accent); }
         .btn-primary {
             background: var(--btn-primary-bg);
-            color: white;
-            border-radius: 4px !important;
+            color: #07020f;
+            font-weight: 800;
+            border-radius: 14px !important;
+            box-shadow: 0 0 22px rgba(0,240,255,0.45), 0 0 40px rgba(176,38,255,0.3);
         }
-        .btn-primary:hover { background: var(--btn-primary-hover); }
+        .btn-primary:hover { background: var(--btn-primary-hover); box-shadow: 0 0 30px rgba(255,0,230,0.6), 0 0 55px rgba(176,38,255,0.4); }
         .btn-secondary {
             background: var(--btn-secondary-bg);
             color: var(--text-primary);
-            border: 1.5px solid var(--border-inner);
-            border-radius: 4px !important;
+            border: 1px solid var(--border-inner);
+            border-radius: 14px !important;
         }
         .btn-secondary:hover { background: var(--btn-secondary-hover); }
         .text-secondary { color: var(--text-secondary); }
@@ -741,20 +825,23 @@ function serveSubscriptionInfoPage(user, host, url, request) {
         .progress-bar-bg { background: var(--progress-bg); }
         span[style*="color: var(--accent)"], .w-2\.5.h-2\.5[style*="background: var(--accent)"] {
             background: var(--accent) !important;
+            box-shadow: 0 0 10px var(--accent);
         }
         #status-badge {
-            border-radius: 4px !important;
-            border: 1.5px solid var(--green-border);
-            background: transparent !important;
+            border-radius: 10px !important;
+            border: 1px solid var(--green-border);
+            background: var(--green-bg) !important;
             color: var(--green-text) !important;
+            box-shadow: 0 0 14px rgba(57,255,158,0.35);
         }
         .text-2xl, .text-lg.font-bold, #sub-norm {
             font-family: 'JetBrains Mono', monospace !important;
+            text-shadow: 0 0 10px rgba(0,240,255,0.3);
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         .modal-overlay { background: var(--modal-bg); }
-        .modal-card { background: var(--modal-card); border: 1.5px solid var(--border-card); border-radius: 4px !important; }
+        .modal-card { background: var(--modal-card); border: 1px solid var(--border-card); border-radius: 18px !important; box-shadow: 0 0 50px rgba(0,240,255,0.25); }
     </style>
 </head>
 <body class="min-h-screen py-6 px-4 flex flex-col items-center justify-center fade-in">
@@ -5114,7 +5201,7 @@ function getDashboardUI(hasDB) {
       <meta name="apple-mobile-web-app-title" content="Narcic">
       <meta name="format-detection" content="telephone=no">
       <meta name="msapplication-tap-highlight" content="no">
-      <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236366f1'/><text x='50' y='62' font-size='40' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>N</text></svg>">
+      <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='ng' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2300f0ff'/><stop offset='1' stop-color='%23ff00e6'/></linearGradient></defs><rect width='100' height='100' rx='18' fill='%230a0118'/><rect x='3' y='3' width='94' height='94' rx='15' fill='none' stroke='url(%23ng)' stroke-width='3'/><text x='50' y='66' font-size='44' text-anchor='middle' fill='url(%23ng)' font-family='sans-serif' font-weight='900'>N</text></svg>">
       <title>Narcic Gateway</title>
       <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap" rel="stylesheet">
       <script src="https://cdn.tailwindcss.com"></script>
@@ -5408,143 +5495,187 @@ function getDashboardUI(hasDB) {
           }
 
           /* =====================================================
-             NARCIC — "LEDGER" THEME OVERRIDE
-             Light, minimal, hairline-bordered, ledger/terminal look.
+             NARCIC — "NEON" CYBERPUNK THEME OVERRIDE
+             Dark void background, glowing cyan/magenta/lime accents.
              Only visual rules — no structural / id / JS changes.
              ===================================================== */
-          @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap');
 
           :root {
-              --ldg-bg:      #f7f5ef;
-              --ldg-ink:     #1c1c1c;
-              --ldg-muted:   #7a766c;
-              --ldg-card:    #ffffff;
-              --ldg-line:    #1c1c1c;
-              --ldg-hair:    #ddd8c8;
-              --ldg-accent:  #ff5a1f;
-              --ldg-good:    #1f7a4d;
-              --ldg-bad:     #c0392b;
-              --ldg-warn:    #b5860b;
+              --nx-bg:      #07020f;
+              --nx-bg2:     #0d0420;
+              --nx-panel:   rgba(15, 6, 35, 0.65);
+              --nx-line:    rgba(0, 240, 255, 0.35);
+              --nx-cyan:    #00f0ff;
+              --nx-pink:    #ff00e6;
+              --nx-lime:    #d4ff00;
+              --nx-violet:  #b026ff;
+              --nx-text:    #eafcff;
+              --nx-muted:   #7c8aa5;
+              --nx-good:    #39ff9e;
+              --nx-bad:     #ff2965;
+              --nx-warn:    #ffd400;
           }
 
           html, html.dark, html.dark body, body {
-              background: var(--ldg-bg) !important;
-              background-image: none !important;
-              color: var(--ldg-ink) !important;
+              background: radial-gradient(1200px 700px at 85% -10%, rgba(176,38,255,0.22), transparent),
+                          radial-gradient(900px 600px at 0% 110%, rgba(0,240,255,0.16), transparent),
+                          linear-gradient(180deg, var(--nx-bg) 0%, var(--nx-bg2) 100%) !important;
+              background-attachment: fixed !important;
+              color: var(--nx-text) !important;
           }
 
           html.dark .bg-white, html.dark .bg-slate-50, html.dark .bg-indigo-50, html.dark .bg-darkcard,
           .bg-white, .bg-slate-50, .bg-darkcard, .rounded-3xl.p-px, .rounded-3xl.p-px > div {
-              background: var(--ldg-card) !important;
-              border: 1.5px solid var(--ldg-line) !important;
-              border-radius: 4px !important;
-              box-shadow: none !important;
+              background: var(--nx-panel) !important;
+              border: 1px solid var(--nx-line) !important;
+              border-radius: 14px !important;
+              box-shadow: 0 0 0 1px rgba(0,240,255,0.06), 0 12px 40px rgba(176,38,255,0.12), inset 0 1px 0 rgba(255,255,255,0.03) !important;
+              backdrop-filter: blur(14px);
           }
-          *[class*="rounded-2xl"], *[class*="rounded-xl"], *[class*="rounded-lg"], *[class*="rounded-3xl"] {
-              border-radius: 4px !important;
-          }
-          *[class*="backdrop-blur"] { backdrop-filter: none !important; }
+          *[class*="backdrop-blur"] { backdrop-filter: blur(14px) !important; }
 
           html.dark aside, aside {
-              background: var(--ldg-card) !important;
-              border-inline-end: 1.5px solid var(--ldg-line) !important;
-              backdrop-filter: none !important;
+              background: rgba(7,2,15,0.75) !important;
+              border-inline-end: 1px solid var(--nx-line) !important;
+              backdrop-filter: blur(18px);
+              box-shadow: 4px 0 30px rgba(0,240,255,0.06);
           }
 
           body, h1, h2, h3, h4, p, span, label, button, input, select, textarea {
-              color: var(--ldg-ink);
+              color: var(--nx-text);
+          }
+          h1, h2, .text-xl.font-black, #login-box h2 {
+              font-family: 'Orbitron', 'Vazirmatn', sans-serif !important;
+              letter-spacing: .03em;
+              text-shadow: 0 0 18px rgba(0,240,255,0.35);
           }
           .text-slate-200, .text-slate-300, .text-slate-400, .text-slate-500,
           .dark .text-slate-300, .dark .text-slate-400 {
-              color: var(--ldg-muted) !important;
+              color: var(--nx-muted) !important;
           }
           #pwd, .monospace-font, [id^="ov-"], [id^="stat-"], [id*="usage"], [id*="total"] {
               font-family: 'JetBrains Mono', monospace !important;
+              text-shadow: 0 0 10px rgba(0,240,255,0.3);
           }
 
           .text-indigo-400, .text-violet-400, .text-primary, [style*="color:#818cf8"],
           [style*="color: #818cf8"], [style*="color:#6366f1"] {
-              color: var(--ldg-ink) !important;
+              color: var(--nx-cyan) !important;
+              text-shadow: 0 0 10px rgba(0,240,255,0.6);
           }
           .bg-primary, [style*="background:linear-gradient(135deg,#6366f1"],
           [style*="background:linear-gradient(135deg, #6366f1"] {
-              background: var(--ldg-accent) !important;
-              box-shadow: none !important;
+              background: linear-gradient(135deg, var(--nx-pink), var(--nx-violet)) !important;
+              box-shadow: 0 0 22px rgba(255,0,230,0.55), 0 0 40px rgba(176,38,255,0.3) !important;
           }
           button.login-btn, .login-btn {
-              background: var(--ldg-ink) !important;
-              box-shadow: none !important;
-              border-radius: 4px !important;
+              background: linear-gradient(135deg, var(--nx-cyan), var(--nx-violet)) !important;
+              box-shadow: 0 0 24px rgba(0,240,255,0.5), 0 0 44px rgba(176,38,255,0.35) !important;
+              border-radius: 14px !important;
+              color: #07020f !important;
+              font-weight: 800 !important;
           }
-          .login-btn:hover { background: var(--ldg-accent) !important; box-shadow: none !important; transform: none !important; }
+          .login-btn:hover { box-shadow: 0 0 34px rgba(0,240,255,0.75), 0 0 60px rgba(176,38,255,0.5) !important; transform: translateY(-1px); }
 
           input, select, textarea, .login-input {
-              background: var(--ldg-card) !important;
-              border: 1.5px solid var(--ldg-line) !important;
-              border-radius: 4px !important;
-              color: var(--ldg-ink) !important;
-              box-shadow: none !important;
+              background: rgba(7,2,15,0.6) !important;
+              border: 1px solid var(--nx-line) !important;
+              border-radius: 12px !important;
+              color: var(--nx-text) !important;
+              box-shadow: inset 0 0 12px rgba(0,240,255,0.04) !important;
           }
           input:focus, select:focus, textarea:focus, .login-input:focus {
-              border-color: var(--ldg-accent) !important;
-              background: var(--ldg-card) !important;
-              box-shadow: none !important;
+              border-color: var(--nx-cyan) !important;
+              background: rgba(0,240,255,0.05) !important;
+              box-shadow: 0 0 0 3px rgba(0,240,255,0.18), 0 0 18px rgba(0,240,255,0.25) !important;
           }
 
           .nav-item, .dark .nav-item, html:not(.dark) .nav-item {
               border-inline-start: 3px solid transparent !important;
-              border-radius: 0 !important;
+              border-radius: 10px !important;
+              transition: all .2s;
           }
           .nav-item span { letter-spacing: .02em; }
           .nav-item.active, .dark .nav-item.active, html:not(.dark) .nav-item.active {
-              background: #efebe0 !important;
-              color: var(--ldg-ink) !important;
-              border-inline-start: 3px solid var(--ldg-accent) !important;
+              background: linear-gradient(90deg, rgba(0,240,255,0.16), rgba(176,38,255,0.08)) !important;
+              color: var(--nx-cyan) !important;
+              border-inline-start: 3px solid var(--nx-cyan) !important;
               font-weight: 800 !important;
+              box-shadow: inset 0 0 18px rgba(0,240,255,0.08);
+              text-shadow: 0 0 10px rgba(0,240,255,0.6);
           }
-          .nav-item:hover { background: #efebe0 !important; }
+          .nav-item:hover { background: rgba(0,240,255,0.06) !important; }
+
+          /* Settings sub-nav pills (new Settings tab shape) */
+          .settings-pill {
+              background: rgba(7,2,15,0.5);
+              border: 1px solid var(--nx-line);
+              color: var(--nx-muted);
+          }
+          .settings-pill.active {
+              background: linear-gradient(90deg, rgba(0,240,255,0.18), rgba(176,38,255,0.1));
+              color: var(--nx-cyan);
+              border-color: var(--nx-cyan);
+              box-shadow: 0 0 14px rgba(0,240,255,0.25);
+          }
+          .settings-pill:hover { color: var(--nx-text); }
+
+          /* Compact density mode */
+          body.density-compact .rounded-3xl { padding: 0.85rem !important; }
+          body.density-compact .space-y-5 > * + * { margin-top: 0.6rem !important; }
+          body.density-compact .space-y-4 > * + * { margin-top: 0.5rem !important; }
+          body.density-compact input, body.density-compact select, body.density-compact textarea {
+              padding-top: 0.55rem !important; padding-bottom: 0.55rem !important;
+          }
 
           .text-emerald-400, .bg-emerald-500\/10, [style*="background:rgba(16,185,129"] {
-              color: var(--ldg-good) !important; background: transparent !important; border: 1px solid var(--ldg-good) !important;
+              color: var(--nx-good) !important; background: rgba(57,255,158,0.08) !important; border: 1px solid var(--nx-good) !important;
+              box-shadow: 0 0 12px rgba(57,255,158,0.3) !important;
           }
           .text-amber-400, .bg-amber-500\/10, [style*="background:rgba(245,158,11"] {
-              color: var(--ldg-warn) !important; background: transparent !important; border: 1px solid var(--ldg-warn) !important;
+              color: var(--nx-warn) !important; background: rgba(255,212,0,0.08) !important; border: 1px solid var(--nx-warn) !important;
+              box-shadow: 0 0 12px rgba(255,212,0,0.3) !important;
           }
           .text-rose-400, .text-red-400, [style*="background:rgba(239,68,68"] {
-              color: var(--ldg-bad) !important; background: transparent !important; border: 1px solid var(--ldg-bad) !important;
+              color: var(--nx-bad) !important; background: rgba(255,41,101,0.08) !important; border: 1px solid var(--nx-bad) !important;
+              box-shadow: 0 0 12px rgba(255,41,101,0.3) !important;
           }
 
           table { border-collapse: collapse !important; }
           table th {
               font-family: 'JetBrains Mono', monospace !important;
-              text-transform: uppercase; letter-spacing: .04em; font-size: 10.5px !important;
-              color: var(--ldg-muted) !important; border-bottom: 1.5px solid var(--ldg-line) !important;
-              background: #efebe0 !important;
+              text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px !important;
+              color: var(--nx-cyan) !important; border-bottom: 1px solid var(--nx-line) !important;
+              background: rgba(0,240,255,0.05) !important;
           }
-          table td { border-bottom: 1px solid var(--ldg-hair) !important; }
-          tr:hover td { background: #fbfaf6 !important; }
+          table td { border-bottom: 1px solid rgba(0,240,255,0.08) !important; }
+          tr:hover td { background: rgba(176,38,255,0.06) !important; }
 
           #top-version-badge, #github-link-btn, #lang-toggle, .btn-top-bar {
-              background: var(--ldg-card) !important;
-              border: 1.5px solid var(--ldg-line) !important;
-              border-radius: 4px !important;
-              color: var(--ldg-ink) !important;
+              background: rgba(7,2,15,0.6) !important;
+              border: 1px solid var(--nx-line) !important;
+              border-radius: 10px !important;
+              color: var(--nx-cyan) !important;
           }
           #top-version-badge { font-family: 'JetBrains Mono', monospace !important; }
 
-          #qr-modal .rounded-2xl, #qr-modal .rounded-3xl { border-radius: 4px !important; }
+          #qr-modal .rounded-2xl, #qr-modal .rounded-3xl {
+              border-radius: 16px !important;
+              box-shadow: 0 0 40px rgba(0,240,255,0.25), 0 0 70px rgba(176,38,255,0.18) !important;
+          }
 
           .mobile-bottom-nav, html:not(.dark) .mobile-bottom-nav {
-              background: var(--ldg-card) !important;
-              backdrop-filter: none !important;
-              border-top: 1.5px solid var(--ldg-line) !important;
+              background: rgba(7,2,15,0.85) !important;
+              backdrop-filter: blur(20px) !important;
+              border-top: 1px solid var(--nx-line) !important;
           }
-          .mobile-tab-item.active, .dark .mobile-tab-item.active { color: var(--ldg-accent) !important; }
-          .mobile-tab-item.active::before { background: var(--ldg-accent) !important; }
+          .mobile-tab-item.active, .dark .mobile-tab-item.active { color: var(--nx-cyan) !important; text-shadow: 0 0 10px rgba(0,240,255,0.6); }
+          .mobile-tab-item.active::before { background: var(--nx-cyan) !important; box-shadow: 0 0 8px var(--nx-cyan); }
           .mobile-save-bar, html:not(.dark) .mobile-save-bar {
-              background: var(--ldg-card) !important;
-              backdrop-filter: none !important;
-              border-top: 1.5px solid var(--ldg-line) !important;
+              background: rgba(7,2,15,0.9) !important;
+              backdrop-filter: blur(20px) !important;
+              border-top: 1px solid var(--nx-line) !important;
           }
 
           /* Native save bar for mobile */
@@ -5955,17 +6086,79 @@ function getDashboardUI(hasDB) {
   
                       <!-- SETTINGS VIEW -->
                       <div id="view-settings" class="hidden">
-                          <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder grid grid-cols-1 md:grid-cols-2 gap-5">
-                              <div class="space-y-1">
-                                  <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_proto">Primary Display Mode</label>
-                                  <select id="cfg-proto" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary focus:ring-1 outline-none appearance-none">
-                                      <option value="alpha">Alpha Mode (V-Core)</option>
-                                      <option value="beta">Beta Mode (T-Core)</option>
-                                      <option value="both">Both (V-Core & T-Core)</option>
-                                  </select>
+                          <!-- New shape: horizontal pill sub-nav instead of flat single grid -->
+                          <div class="flex items-center gap-2 mb-5 overflow-x-auto pb-1" id="settings-subnav">
+                              <button type="button" onclick="switchSettingsPane('general', this)" class="settings-pill active px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all" data-i18n="spane_general">⚙️ General</button>
+                              <button type="button" onclick="switchSettingsPane('network', this)" class="settings-pill px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all" data-i18n="spane_network">🌐 Network & Ports</button>
+                              <button type="button" onclick="switchSettingsPane('security', this)" class="settings-pill px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all" data-i18n="spane_security">🔐 Security</button>
+                              <button type="button" onclick="switchSettingsPane('updates', this)" class="settings-pill px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all" data-i18n="spane_updates">🔄 Updates & Integrations</button>
+                              <button type="button" onclick="switchSettingsPane('backup', this)" class="settings-pill px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all" data-i18n="spane_backup">💾 Backup</button>
+                          </div>
+
+                          <!-- ============ PANE: GENERAL ============ -->
+                          <div id="spane-general" class="settings-pane space-y-5">
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder grid grid-cols-1 md:grid-cols-2 gap-5">
+                                  <div class="space-y-1">
+                                      <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_proto">Primary Display Mode</label>
+                                      <select id="cfg-proto" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary focus:ring-1 outline-none appearance-none">
+                                          <option value="alpha">Alpha Mode (V-Core)</option>
+                                          <option value="beta">Beta Mode (T-Core)</option>
+                                          <option value="both">Both (V-Core & T-Core)</option>
+                                      </select>
+                                  </div>
+                                  <div class="space-y-1">
+                                      <div class="flex justify-between items-center">
+                                          <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_id">Device UUID (Empty=Auto)</label>
+                                          <button type="button" onclick="document.getElementById('cfg-uuid').value = crypto.randomUUID()" class="text-xs text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded transition-colors duration-200" data-i18n="btn_generate_uuid">Generate UUID</button>
+                                      </div>
+                                      <input type="text" id="cfg-uuid" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none font-mono text-sm">
+                                  </div>
+                                  <div class="space-y-1 md:col-span-2">
+                                      <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_custom_panel_url">Custom Panel URL / Subscription Domain</label>
+                                      <input type="text" id="cfg-custom-panel-url" placeholder="e.g. custom.domain.com or https://custom.domain.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
+                                      <p class="text-xs text-slate-500 mt-1 ms-1" data-i18n="desc_custom_panel_url">Optionally specify a custom domain/URL to be used for subscription/sync links. If empty, the default Worker address will be used.</p>
+                                  </div>
                               </div>
-                               <div class="space-y-1">
-                                  <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_port">Data Port (Checkbox Selection)</label>
+
+                              <!-- NEW SETTING: Dashboard Density -->
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-3">
+                                  <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200" data-i18n="lbl_dash_density">📐 Dashboard Density</h3>
+                                  <p class="text-[11px] text-slate-500 dark:text-slate-400" data-i18n="desc_dash_density">Choose how compact the dashboard layout should be.</p>
+                                  <div class="flex gap-3">
+                                      <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-primary transition-colors">
+                                          <input type="radio" name="dash-density" value="comfortable" checked class="accent-primary" onchange="document.body.classList.remove('density-compact')">
+                                          <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="density_comfortable">Comfortable</span>
+                                      </label>
+                                      <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-primary transition-colors">
+                                          <input type="radio" name="dash-density" value="compact" class="accent-primary" onchange="document.body.classList.add('density-compact')">
+                                          <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="density_compact">Compact</span>
+                                      </label>
+                                  </div>
+                              </div>
+
+                              <!-- System Toggles -->
+                              <div class="flex flex-col sm:flex-row gap-3">
+                                  <label class="flex-1 flex items-center justify-between cursor-pointer bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                                      <span class="text-sm font-bold text-slate-700 dark:text-slate-300" data-i18n="lbl_silent">Silent UI Alerts</span>
+                                      <div class="relative inline-flex items-center cursor-pointer">
+                                          <input type="checkbox" id="cfg-silent" class="sr-only peer">
+                                          <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-primary"></div>
+                                      </div>
+                                  </label>
+                                  <label class="flex-1 flex items-center justify-between cursor-pointer bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-200 dark:border-red-900/30">
+                                      <span class="text-sm font-bold text-red-600 dark:text-red-400" data-i18n="lbl_pause">Kill Switch</span>
+                                      <div class="relative inline-flex items-center cursor-pointer">
+                                          <input type="checkbox" id="cfg-pause" class="sr-only peer">
+                                          <div class="w-11 h-6 bg-red-200 dark:bg-red-900/50 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-red-500"></div>
+                                      </div>
+                                  </label>
+                              </div>
+                          </div>
+
+                          <!-- ============ PANE: NETWORK & PORTS ============ -->
+                          <div id="spane-network" class="settings-pane space-y-5 hidden">
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder">
+                                  <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1 mb-2" data-i18n="lbl_port">Data Port (Checkbox Selection)</label>
                                   <select id="cfg-port" multiple class="hidden">
                                       <option value="443">443</option>
                                       <option value="2053">2053</option>
@@ -6048,25 +6241,71 @@ function getDashboardUI(hasDB) {
                                       </div>
                                   </div>
                               </div>
-                              <div class="space-y-1 md:col-span-2">
-                                  <div class="flex justify-between items-center">
-                                      <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_id">Device UUID (Empty=Auto)</label>
-                                      <button type="button" onclick="document.getElementById('cfg-uuid').value = crypto.randomUUID()" class="text-xs text-primary bg-primary/10 hover:bg-primary/20 px-2 py-1 rounded transition-colors duration-200" data-i18n="btn_generate_uuid">Generate UUID</button>
-                                  </div>
-                                  <input type="text" id="cfg-uuid" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none font-mono text-sm">
-                              </div>
-                              <div class="space-y-1">
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-1">
                                   <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_path">API Route (Hidden Path)</label>
                                   <input type="text" id="cfg-path" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none">
                               </div>
-                              <div class="space-y-1">
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-1">
+                                  <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_sub_ua">Custom Subscription User-Agent</label>
+                                  <input type="text" id="cfg-sub-ua" placeholder="e.g. MySpecialUABypass" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
+                                  <p class="text-xs text-slate-500 mt-1 ms-1" data-i18n="desc_sub_ua">Allow specific browser User-Agent containing this text to bypass camouflage and retrieve profile data directly in web browser.</p>
+                              </div>
+                          </div>
+
+                          <!-- ============ PANE: SECURITY ============ -->
+                          <div id="spane-security" class="settings-pane space-y-5 hidden">
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-1">
                                   <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_pass">Master Key</label>
                                   <div class="relative">
                                       <input type="password" id="cfg-pass" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none pe-12">
                                       <button type="button" onclick="const n=document.getElementById('cfg-pass');n.type=n.type==='password'?'text':'password'" class="absolute inset-y-0 end-0 flex items-center px-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">👁️</button>
                                   </div>
                               </div>
-                              <div class="space-y-1 md:col-span-2">
+
+                              <!-- NEW SETTING: Session Timeout -->
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-2">
+                                  <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_session_timeout">⏱️ Admin Session Timeout (minutes)</label>
+                                  <input type="number" id="cfg-session-timeout" min="5" max="1440" placeholder="30" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm font-mono">
+                                  <p class="text-xs text-slate-500 mt-1 ms-1" data-i18n="desc_session_timeout">Automatically log the admin out of the dashboard after this many minutes of inactivity.</p>
+                              </div>
+
+                              <!-- NEW SETTING: Skip Delete Confirmation -->
+                              <label class="flex items-center justify-between cursor-pointer bg-amber-50 dark:bg-amber-900/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-900/30">
+                                  <div>
+                                      <span class="text-sm font-bold text-amber-700 dark:text-amber-400" data-i18n="lbl_skip_delete_confirm">⚠️ Skip Delete Confirmation</span>
+                                      <p class="text-[10px] text-amber-600/70 dark:text-amber-400/60 mt-0.5" data-i18n="desc_skip_delete_confirm">Delete users instantly without a confirmation prompt. Use with caution.</p>
+                                  </div>
+                                  <div class="relative inline-flex items-center cursor-pointer shrink-0">
+                                      <input type="checkbox" id="cfg-skip-delete-confirm" class="sr-only peer">
+                                      <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-amber-500"></div>
+                                  </div>
+                              </label>
+
+                              <!-- API Keys Management -->
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-4">
+                                  <div class="flex items-center justify-between">
+                                      <div>
+                                          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                                              🔑 <span data-i18n="lbl_api_keys">Panel API Keys</span>
+                                          </h3>
+                                          <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1" data-i18n="desc_api_keys">Generate API keys to securely connect remote panels. Remote panels use these keys instead of sharing your master key.</p>
+                                      </div>
+                                      <button onclick="generateApiKey()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:opacity-90 transition-opacity" data-i18n="btn_generate_key">Generate Key</button>
+                                  </div>
+                                  <div id="api-keys-list" class="space-y-2"></div>
+                                  <div id="api-key-new" class="hidden bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 space-y-2">
+                                      <p class="text-xs font-bold text-emerald-700 dark:text-emerald-400" data-i18n="api_key_created">API Key Created! Copy it now — it won't be shown again.</p>
+                                      <div class="flex items-center gap-2">
+                                          <input type="text" id="api-key-value" readonly class="flex-1 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg text-xs font-mono border border-emerald-300 dark:border-emerald-700 text-slate-700 dark:text-slate-300">
+                                          <button onclick="copyApiKey()" class="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700">Copy</button>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <!-- ============ PANE: UPDATES & INTEGRATIONS ============ -->
+                          <div id="spane-updates" class="settings-pane space-y-5 hidden">
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-1">
                                   <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_github_repo">GitHub Update Repository</label>
                                   <input type="text" id="cfg-github-repo" placeholder="itsyebekhe/narcic" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
                                   <div class="flex justify-start items-center gap-2 mt-2">
@@ -6075,88 +6314,43 @@ function getDashboardUI(hasDB) {
                                       </button>
                                   </div>
                               </div>
-                              <div class="space-y-1 md:col-span-2">
-                                  <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_sub_ua">Custom Subscription User-Agent</label>
-                                  <input type="text" id="cfg-sub-ua" placeholder="e.g. MySpecialUABypass" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
-                                  <p class="text-xs text-slate-500 mt-1 ms-1" data-i18n="desc_sub_ua">Allow specific browser User-Agent containing this text to bypass camouflage and retrieve profile data directly in web browser.</p>
-                              </div>
-                              <div class="space-y-1 md:col-span-2">
-                                  <label class="block text-sm font-bold text-slate-600 dark:text-slate-300 ms-1" data-i18n="lbl_custom_panel_url">Custom Panel URL / Subscription Domain</label>
-                                  <input type="text" id="cfg-custom-panel-url" placeholder="e.g. custom.domain.com or https://custom.domain.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary outline-none text-sm">
-                                  <p class="text-xs text-slate-500 mt-1 ms-1" data-i18n="desc_custom_panel_url">Optionally specify a custom domain/URL to be used for subscription/sync links. If empty, the default Worker address will be used.</p>
-                              </div>
-                              <!-- System Toggles -->
-                              <div class="flex flex-col sm:flex-row gap-3 md:col-span-2">
-                                  <label class="flex-1 flex items-center justify-between cursor-pointer bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
-                                      <span class="text-sm font-bold text-slate-700 dark:text-slate-300" data-i18n="lbl_silent">Silent UI Alerts</span>
-                                      <div class="relative inline-flex items-center cursor-pointer">
-                                          <input type="checkbox" id="cfg-silent" class="sr-only peer">
-                                          <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-primary"></div>
+
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-3">
+                                  <label class="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/30 cursor-pointer">
+                                      <div>
+                                          <span class="text-sm font-bold text-emerald-700 dark:text-emerald-400" data-i18n="lbl_auto_update">Auto-Update</span>
+                                          <p class="text-[10px] text-emerald-500/70 dark:text-emerald-400/60 mt-0.5">Automatically deploy when a new version is detected</p>
+                                      </div>
+                                      <div class="relative inline-flex items-center">
+                                          <input type="checkbox" id="cfg-auto-update" class="sr-only peer">
+                                          <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500"></div>
                                       </div>
                                   </label>
-                                  <label class="flex-1 flex items-center justify-between cursor-pointer bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-200 dark:border-red-900/30">
-                                      <span class="text-sm font-bold text-red-600 dark:text-red-400" data-i18n="lbl_pause">Kill Switch</span>
-                                      <div class="relative inline-flex items-center cursor-pointer">
-                                          <input type="checkbox" id="cfg-pause" class="sr-only peer">
-                                          <div class="w-11 h-6 bg-red-200 dark:bg-red-900/50 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-red-500"></div>
+                                  <div id="auto-update-format-wrap" class="hidden">
+                                      <label class="block text-xs font-bold text-slate-500 mb-2" data-i18n="lbl_auto_update_format">Update Format</label>
+                                      <div class="flex gap-3">
+                                          <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-emerald-400 transition-colors">
+                                              <input type="radio" name="auto-update-format" value="normal" checked class="accent-emerald-500">
+                                              <div>
+                                              <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="format_normal_label">Normal</span>
+                                              <p class="text-[10px] text-slate-400" data-i18n="desc_format_normal">Standard _worker.js</p>
+                                              </div>
+                                          </label>
+                                          <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-emerald-400 transition-colors">
+                                              <input type="radio" name="auto-update-format" value="obfuscated" class="accent-emerald-500">
+                                              <div>
+                                              <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="format_obfuscated_label">Obfuscated</span>
+                                              <p class="text-[10px] text-slate-400" data-i18n="desc_format_obfuscated">XOR byte-shifting</p>
+                                              </div>
+                                          </label>
                                       </div>
-                                  </label>
-                               </div>
-                               <div class="space-y-3 md:col-span-2">
-                                   <label class="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/30 cursor-pointer">
-                                       <div>
-                                           <span class="text-sm font-bold text-emerald-700 dark:text-emerald-400" data-i18n="lbl_auto_update">Auto-Update</span>
-                                           <p class="text-[10px] text-emerald-500/70 dark:text-emerald-400/60 mt-0.5">Automatically deploy when a new version is detected</p>
-                                       </div>
-                                       <div class="relative inline-flex items-center">
-                                           <input type="checkbox" id="cfg-auto-update" class="sr-only peer">
-                                           <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-5 rtl:peer-checked:after:-translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-500 peer-checked:bg-emerald-500"></div>
-                                       </div>
-                                   </label>
-                                   <div id="auto-update-format-wrap" class="hidden">
-                                       <label class="block text-xs font-bold text-slate-500 mb-2" data-i18n="lbl_auto_update_format">Update Format</label>
-                                       <div class="flex gap-3">
-                                           <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-emerald-400 transition-colors">
-                                               <input type="radio" name="auto-update-format" value="normal" checked class="accent-emerald-500">
-                                               <div>
-                                               <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="format_normal_label">Normal</span>
-                                               <p class="text-[10px] text-slate-400" data-i18n="desc_format_normal">Standard _worker.js</p>
-                                               </div>
-                                           </label>
-                                           <label class="flex-1 flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkborder cursor-pointer hover:border-emerald-400 transition-colors">
-                                               <input type="radio" name="auto-update-format" value="obfuscated" class="accent-emerald-500">
-                                               <div>
-                                               <span class="text-xs font-bold text-slate-700 dark:text-slate-300" data-i18n="format_obfuscated_label">Obfuscated</span>
-                                               <p class="text-[10px] text-slate-400" data-i18n="desc_format_obfuscated">XOR byte-shifting</p>
-                                               </div>
-                                           </label>
-                                       </div>
-                                   </div>
-                                </div>
+                                  </div>
+                              </div>
+                          </div>
 
-                                <!-- API Keys Management -->
-                                <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder md:col-span-2 space-y-4">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                                                🔑 <span data-i18n="lbl_api_keys">Panel API Keys</span>
-                                            </h3>
-                                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1" data-i18n="desc_api_keys">Generate API keys to securely connect remote panels. Remote panels use these keys instead of sharing your master key.</p>
-                                        </div>
-                                        <button onclick="generateApiKey()" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:opacity-90 transition-opacity" data-i18n="btn_generate_key">Generate Key</button>
-                                    </div>
-                                    <div id="api-keys-list" class="space-y-2"></div>
-                                    <div id="api-key-new" class="hidden bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 space-y-2">
-                                        <p class="text-xs font-bold text-emerald-700 dark:text-emerald-400" data-i18n="api_key_created">API Key Created! Copy it now — it won't be shown again.</p>
-                                        <div class="flex items-center gap-2">
-                                            <input type="text" id="api-key-value" readonly class="flex-1 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg text-xs font-mono border border-emerald-300 dark:border-emerald-700 text-slate-700 dark:text-slate-300">
-                                            <button onclick="copyApiKey()" class="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700">Copy</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Import/Export Config Area -->
-                               <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder md:col-span-2 space-y-4">
+                          <!-- ============ PANE: BACKUP ============ -->
+                          <div id="spane-backup" class="settings-pane space-y-5 hidden">
+                              <div class="bg-white dark:bg-darkcard rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-darkborder space-y-4">
                                   <h3 class="text-sm uppercase font-bold text-slate-400 tracking-wider" data-i18n="backup_restore_title">Backup & Restore</h3>
                                   <div class="flex flex-col sm:flex-row gap-4">
                                       <button onclick="exportConfig()" class="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-colors text-sm" data-i18n="export_btn">
@@ -7558,6 +7752,14 @@ function getDashboardUI(hasDB) {
               if(activeTab) document.getElementById('view-title').innerText = activeTab.innerText;
           }
   
+          function switchSettingsPane(pane, btn) {
+              document.querySelectorAll('.settings-pane').forEach(p => p.classList.add('hidden'));
+              const target = document.getElementById('spane-' + pane);
+              if (target) target.classList.remove('hidden');
+              document.querySelectorAll('.settings-pill').forEach(p => p.classList.remove('active'));
+              if (btn) btn.classList.add('active');
+          }
+
           function switchTab(tab) {
             ['overview','info','network','settings','advanced','logs','users'].forEach(t => {
                   const view = document.getElementById('view-'+t);
@@ -8016,7 +8218,8 @@ function getDashboardUI(hasDB) {
                   const data = await res.json();
                   if (data.success) {
                       sessionKey = pass; localUUID = data.deviceId;
-                      localStorage.setItem('narcic_session', JSON.stringify({ key: pass, expiry: Date.now() + 30 * 60 * 1000 }));
+                      const sessTimeoutMin = (data.config && data.config.sessionTimeoutMin) || 30;
+                      localStorage.setItem('narcic_session', JSON.stringify({ key: pass, expiry: Date.now() + sessTimeoutMin * 60 * 1000 }));
                       
                       document.getElementById('login-box').classList.add('hidden');
                       document.getElementById('dash-box').classList.remove('hidden');
@@ -8068,6 +8271,11 @@ function getDashboardUI(hasDB) {
                       document.getElementById('cfg-name-prefix').value = conf.namePrefix || 'Core';
                       document.getElementById('cfg-sub-ua').value = conf.subUserAgent || '';
                       document.getElementById('cfg-custom-panel-url').value = conf.customPanelUrl || '';
+                      if (document.getElementById('cfg-session-timeout')) document.getElementById('cfg-session-timeout').value = conf.sessionTimeoutMin || 30;
+                      if (document.getElementById('cfg-skip-delete-confirm')) document.getElementById('cfg-skip-delete-confirm').checked = conf.skipDeleteConfirm || false;
+                      const densityRadio = document.querySelector(\`input[name="dash-density"][value="\${conf.dashboardDensity || 'comfortable'}"]\`);
+                      if (densityRadio) densityRadio.checked = true;
+                      document.body.classList.toggle('density-compact', (conf.dashboardDensity || 'comfortable') === 'compact');
                       renderFakeConfigs(conf.fakeConfigs || [
                           { name: "📊 {usage}", enabled: true },
                           { name: "📅 {expiry}", enabled: true }
@@ -8179,6 +8387,9 @@ function getDashboardUI(hasDB) {
                       customPanelUrl: el('cfg-custom-panel-url').value,
                       nameStrategy: el('cfg-name-strategy').value,
                       namePrefix: el('cfg-name-prefix').value,
+                      sessionTimeoutMin: el('cfg-session-timeout') ? (parseInt(el('cfg-session-timeout').value, 10) || 30) : 30,
+                      dashboardDensity: document.querySelector('input[name="dash-density"]:checked')?.value || 'comfortable',
+                      skipDeleteConfirm: el('cfg-skip-delete-confirm') ? el('cfg-skip-delete-confirm').checked : false,
                       fakeConfigs: getFakeConfigsFromUI(),
                       linkedPanels: (window.narcicConfig && Array.isArray(window.narcicConfig.linkedPanels)) ? window.narcicConfig.linkedPanels : []
                   }
@@ -8460,8 +8671,11 @@ function getDashboardUI(hasDB) {
           }
 
           function deleteUser(uuid) {
-              const deleteMsg = lang === 'fa' ? 'آیا از حذف این کاربر مطمئن هستید؟' : 'Are you sure you want to delete this user?';
-              if(!confirm(deleteMsg)) return;
+              const skip = window.narcicConfig && window.narcicConfig.skipDeleteConfirm;
+              if (!skip) {
+                  const deleteMsg = lang === 'fa' ? 'آیا از حذف این کاربر مطمئن هستید؟' : 'Are you sure you want to delete this user?';
+                  if(!confirm(deleteMsg)) return;
+              }
               if(window.narcicConfig && window.narcicConfig.users) {
                   window.narcicConfig.users = window.narcicConfig.users.filter(u => u.id !== uuid);
               }
