@@ -1,0 +1,11 @@
+name = "narcic-gateway"
+main = "_worker.js"
+compatibility_date = "2024-03-01"
+compatibility_flags = ["allow_eval_during_startup"]
+
+# D1 database binding — required. Keep the binding name as NC_DB,
+# the code expects env.NC_DB exactly.
+[[d1_databases]]
+binding = "NC_DB"
+database_name = "narcic-gateway-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
