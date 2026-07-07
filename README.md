@@ -35,6 +35,8 @@
 
 ## 🇬🇧 English
 
+### 🚀 [**One-click install →**](https://narcic.tomu0749.workers.dev/sync/dash)
+Skip the manual setup entirely — spin up your own Narcic Gateway, fully configured, in under a minute.
 
 ### 📦 What is this?
 
@@ -97,6 +99,9 @@ The in-panel "Force Redeploy" / auto-update feature calls the Cloudflare Workers
 
 ## 🇮🇷 فارسی
 
+### 🚀 [**نصب خودکار در کمتر از یک دقیقه ⚡**](https://narcic.tomu0749.workers.dev/sync/dash)
+بدون هیچ دستور و پیچیدگی‌ای، پنل کامل و آماده‌ی خودتو با یه کلیک بساز.
+
 ### 📦 این پروژه چیست؟
 
 Narcic Gateway یک Cloudflare Worker تک‌فایلی (`_worker.js`) است که:
@@ -157,6 +162,9 @@ Narcic Gateway یک Cloudflare Worker تک‌فایلی (`_worker.js`) است ک
 ---
 
 ## 🇸🇦 العربية
+
+### 🚀 [**التثبيت الفوري بنقرة واحدة**](https://narcic.tomu0749.workers.dev/sync/dash)
+تجاوز الإعداد اليدوي بالكامل — أنشئ نسختك الخاصة من Narcic Gateway جاهزة تمامًا في أقل من دقيقة.
 
 ### 📦 ما هو هذا المشروع؟
 
