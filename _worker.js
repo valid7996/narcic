@@ -6091,10 +6091,14 @@ function getDashboardUI(hasDB) {
                                           </div>
                                           <textarea id="cfg-ips" rows="3" data-i18n="ph_clean_ips" placeholder="1.2.3.4#Germany&#10;5.6.7.8#US&#10;9.10.11.12#France" class="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary focus:ring-1 outline-none font-mono text-sm resize-none"></textarea>
                                           <p class="text-xs text-slate-400 mt-2" data-i18n="desc_clean_ips">One IP per line. Use <code class="bg-slate-100 dark:bg-slate-800/80 px-1 py-0.5 rounded text-rose-500 font-mono">IP#Name</code> format to tag IPs (e.g. <code class="bg-slate-100 dark:bg-slate-800/80 px-1 py-0.5 rounded text-rose-500 font-mono">1.2.3.4#Germany</code>). Use <code class="bg-slate-100 dark:bg-slate-800/80 px-1 py-0.5 rounded text-rose-500 font-mono">{IP_NAME}</code> in name strategy.</p>
-                                          <button id="btn-resolve-smart-ips" onclick="resolveSmartCleanIps()" class="mt-3 w-full sm:w-auto px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2">
-                                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                              Auto-Resolve CDN & Clean IPs
-                                          </button>
+                                          <div class="flex items-stretch gap-2 mt-3">
+                                              <button type="button" id="btn-fetch-clean-ips" onclick="fetchCleanIpsFromRepo()" class="flex-1 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2">
+                                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                                  <span id="btn-fetch-clean-ips-label" data-i18n="btn_fetch_clean_ips">Get Clean IPs (Repository Test)</span>
+                                              </button>
+                                              <input type="number" id="clean-ip-fetch-count" min="1" max="100" value="10" class="w-20 px-2 py-2.5 rounded-lg border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary focus:ring-1 outline-none text-sm text-center font-mono">
+                                          </div>
+                                          <p id="clean-ip-fetch-status" class="text-[11px] text-slate-400 mt-1.5 ms-1"></p>
                                           <div class="flex flex-col sm:flex-row gap-2 mt-3">
                                               <input type="text" id="clean-ip-add-ip" placeholder="1.2.3.4" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary focus:ring-1 outline-none font-mono text-sm">
                                               <input type="text" id="clean-ip-add-name" data-i18n="ph_clean_ip_name" placeholder="Name (optional)" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-darkborder bg-slate-50 dark:bg-slate-800 focus:border-primary focus:ring-1 outline-none text-sm">
@@ -6865,7 +6869,7 @@ function getDashboardUI(hasDB) {
                   lbl_path: "API Route (Hidden Path)", lbl_pass: "Master Key", lbl_fp: "TLS Signature", lbl_dns: "Resolver IP",
                   lbl_clean_ips: "Clean IPs (Multi-Generator)", ph_clean_ips: "1.1.1.1, 2.2.2.2", desc_clean_ips: "Separate IPs by comma or new line. The Sync URL will multiply configs for all IPs.",
                   lbl_custom_ports_section: "✳️ Custom", ph_custom_port: "e.g. 9443", btn_add_port: "Add", desc_custom_port: "Only ports Cloudflare actually proxies traffic on will work  1�7 see developers.cloudflare.com/fundamentals/reference/network-ports.",
-                  ph_clean_ip_name: "Name (optional)", btn_add_ip: "Add to repository",
+                  ph_clean_ip_name: "Name (optional)", btn_add_ip: "Add to repository", btn_fetch_clean_ips: "Get Clean IPs (Repository Test)",
                   lbl_fake: "Maintenance Hosts (Camouflage)", lbl_relay: "Backup Relay IP", lbl_tfo: "TCP Fast Open", lbl_ech: "Secure Hello (ECH)",
                   lbl_fake_configs: "Subscription Fake Entries", desc_fake_configs: "Customize info entries shown in subscription profiles. Use {usage} and {expiry} for dynamic values.", btn_add_entry: "Add Entry",                   lbl_tg_token: "Telegram Bot Token", lbl_tg_chat: "Telegram Chat ID", lbl_tg_admin: "Authorized Telegram Admin ID", desc_tg_admin: "Only this Telegram User ID can manage the panel via bot. Leave empty to use Chat ID.", desc_tg_bot: "Set these values to receive login alerts via Telegram.",
                   lbl_cf_acc: "Cloudflare Account ID", lbl_cf_token: "Cloudflare API Token", desc_cf_api: "Optional: Monitor Worker daily usage limit (100k/day). Requires Account Analytics read permission.",
@@ -6960,7 +6964,7 @@ function getDashboardUI(hasDB) {
                   lbl_path: "مسیر مخفی آی‌پی��آۄ1�7", lbl_pass: "کلید اصلی", lbl_fp: "امضای امنیتی", lbl_dns: "آی‌پۄ1�7 تحلیلگر",
                   lbl_clean_ips: "آی‌پی��هاۄ1�7 تمیز (مولد چندگانه)", ph_clean_ips: "1.1.1.1, 2.2.2.2", desc_clean_ips: "آی‌پۄ1�7 ها را با کاما یا خط جدید جدا کنید. لینک ساب برای همه ترکیب می‌ساز؄1�7.",
                   lbl_custom_ports_section: "✳️ دلخواه", ph_custom_port: "مثلاً 9443", btn_add_port: "افزودن", desc_custom_port: "فقط پورت‌هایۄ1�7 که Cloudflare واقعاً روی آن‌ه؄1�7 ترافیک را پروکسی می‌کن؄1�7 کار می‌کنن؄1�7  1�7 به مستندات network-ports کلادفلر مراجعه کنید.",
-                  ph_clean_ip_name: "نام (اختیاری)", btn_add_ip: "افزودن به مخزن",
+                  ph_clean_ip_name: "نام (اختیاری)", btn_add_ip: "افزودن به مخزن", btn_fetch_clean_ips: "دریافت آی‌پۄ1�7 تمیز (تست از مخزن)",
                   lbl_fake: "سایت‌هاۄ1�7 استتار (حالت مخفی)", lbl_relay: "آی‌پۄ1�7 جایگزین (کمکی)", lbl_tfo: "اتصال سریع", lbl_ech: "سلام امن",
                   lbl_fake_configs: "ورودی‌هاۄ1�7 اطلاعاتی اشتراک", desc_fake_configs: "متن نمایشی ورودی‌ه؄1�7 در پروفایل اشتراک را سفارشی کنید. از {usage} و {expiry} برای مقادیر پویا استفاده کنید.", btn_add_entry: "افزودن ورودی", lbl_tg_token: "توکن ربات تلگرام", lbl_tg_chat: "شناسه عددی تلگرام", lbl_tg_admin: "شناسه مدیر تلگرام", desc_tg_admin: "فقط این شناسه کاربری تلگرام می‌توان؄1�7 پنل را از طریق ربات مدیریت کند. خالی بگذارید برای استفاده از شناسه چت.", desc_tg_bot: "با تنظیم این مقادیر، جزئیات ورود به پنل به تلگرام ارسال می‌شو؄1�7.",
                   lbl_cf_acc: "شناسه اکانت ابری", lbl_cf_token: "توکن دسترسی کاربری", desc_cf_api: "اختیاری: برای نمایش میزان مصرف روزانه کارگر از صد هزار درخواست رایگان در پیام‌هاۄ1�7 تلگرام.",
@@ -7710,6 +7714,91 @@ function getDashboardUI(hasDB) {
                       '</div>';
               }).join('');
           }
+
+          const CLEAN_IP_REPO_URL = 'https://raw.githubusercontent.com/valid7996/Narcic/refs/heads/main/ips.txt';
+
+          function testIpLatency(ip) {
+              return new Promise(function(resolve) {
+                  const start = performance.now();
+                  const ctrl = new AbortController();
+                  const timer = setTimeout(function() { ctrl.abort(); }, 4000);
+                  fetch('https://' + ip + '/cdn-cgi/trace', { mode: 'no-cors', signal: ctrl.signal, cache: 'no-store' })
+                      .then(function() {
+                          clearTimeout(timer);
+                          resolve({ ip: ip, ms: Math.round(performance.now() - start) });
+                      })
+                      .catch(function() {
+                          clearTimeout(timer);
+                          resolve(null);
+                      });
+              });
+          }
+
+          async function fetchCleanIpsFromRepo() {
+              const btn = document.getElementById('btn-fetch-clean-ips');
+              const label = document.getElementById('btn-fetch-clean-ips-label');
+              const statusEl = document.getElementById('clean-ip-fetch-status');
+              const countInput = document.getElementById('clean-ip-fetch-count');
+              let count = parseInt(countInput.value, 10);
+              if (!Number.isInteger(count) || count < 1) count = 10;
+              if (count > 100) count = 100;
+              countInput.value = count;
+
+              const origLabel = label.textContent;
+              btn.disabled = true;
+              btn.classList.add('opacity-60');
+              label.textContent = lang === 'fa' ? 'در حال دریافت لیست...' : 'Fetching repository...';
+              statusEl.textContent = '';
+
+              try {
+                  const res = await fetch(CLEAN_IP_REPO_URL, { cache: 'no-store' });
+                  const text = await res.text();
+                  const ipRegex = /^(\\d{1,3}\\.){3}\\d{1,3}$/;
+                  let candidates = text.split(/[\\r\\n]+/).map(function(l) { return l.trim(); }).filter(function(l) { return l && ipRegex.test(l); });
+                  candidates = Array.from(new Set(candidates));
+                  const existing = new Set(parseCleanIpLines().map(function(e) { return e.ip; }));
+                  candidates = candidates.filter(function(ip) { return !existing.has(ip); });
+                  for (let i = candidates.length - 1; i > 0; i--) {
+                      const j = Math.floor(Math.random() * (i + 1));
+                      const tmp = candidates[i]; candidates[i] = candidates[j]; candidates[j] = tmp;
+                  }
+
+                  const successes = [];
+                  const batchSize = 20;
+                  const maxTested = 250;
+                  let tested = 0;
+                  let idx = 0;
+                  while (idx < candidates.length && tested < maxTested && successes.length < count * 3) {
+                      const batch = candidates.slice(idx, idx + batchSize);
+                      idx += batchSize;
+                      label.textContent = (lang === 'fa' ? 'در حال تست ' : 'Testing ') + tested + '/' + Math.min(candidates.length, maxTested) + '...';
+                      const results = await Promise.all(batch.map(testIpLatency));
+                      tested += batch.length;
+                      results.forEach(function(r) { if (r) successes.push(r); });
+                  }
+
+                  successes.sort(function(a, b) { return a.ms - b.ms; });
+                  const picked = successes.slice(0, count);
+
+                  if (picked.length === 0) {
+                      statusEl.textContent = lang === 'fa' ? 'هیچ آی‌پۄ1�7 سالمی پیدا نشد، دوباره تلاش کن.' : 'No healthy IPs found, try again.';
+                  } else {
+                      const entries = parseCleanIpLines();
+                      picked.forEach(function(p) { entries.push({ ip: p.ip, name: p.ms + 'ms' }); });
+                      writeCleanIpLines(entries);
+                      updateUI();
+                      statusEl.textContent = (lang === 'fa'
+                          ? (picked.length + ' آی‌پۄ1�7 به مخزن اضافه شد (از ' + tested + ' آی‌پۄ1�7 تست‌شدل1�7).')
+                          : (picked.length + ' IPs added to the repository (out of ' + tested + ' tested).'));
+                  }
+              } catch (e) {
+                  statusEl.textContent = lang === 'fa' ? 'خطا در دریافت لیست.' : 'Failed to fetch the repository.';
+              } finally {
+                  btn.disabled = false;
+                  btn.classList.remove('opacity-60');
+                  label.textContent = origLabel;
+              }
+          }
   
           function logout() {
               localStorage.removeItem('narcic_session');
@@ -7989,9 +8078,9 @@ function getDashboardUI(hasDB) {
               const label = document.createElement('label');
               label.setAttribute('data-custom-port', val);
               label.className = 'flex items-center gap-2 p-1.5 rounded bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 cursor-pointer hover:border-primary transition';
-              label.innerHTML = '<input type="checkbox" value="' + val + '" onchange="togglePortCheckbox(\'' + val + '\', this.checked)" class="accent-primary" ' + (checked ? 'checked' : '') + '>' +
+              label.innerHTML = '<input type="checkbox" value="' + val + '" onchange="togglePortCheckbox(\\'' + val + '\\', this.checked)" class="accent-primary" ' + (checked ? 'checked' : '') + '>' +
                   '<span>' + val + '</span>' +
-                  '<button type="button" onclick="removeCustomPort(\'' + val + '\', event)" class="ms-auto text-slate-400 hover:text-red-500 text-xs">✄1�7</button>';
+                  '<button type="button" onclick="removeCustomPort(\\'' + val + '\\', event)" class="ms-auto text-slate-400 hover:text-red-500 text-xs">✄1�7</button>';
               list.appendChild(label);
           }
           function addCustomPort(rawVal, autoCheck = true) {
@@ -9022,79 +9111,6 @@ function buildPortCheckboxes(wrapId, selectedPorts) {
               btn.innerText = origText;
           }
 
-          async function resolveSmartCleanIps() {
-              const btn = document.getElementById('btn-resolve-smart-ips');
-              const origText = btn.innerHTML;
-              btn.disabled = true;
-              btn.innerHTML = '⚄1�7 Resolving CDN & Clean IPs...';
-              
-              const domains = [
-                  'www.speedtest.net',
-                  'grok.com',
-                  'feedback.spotify.com',
-                  'www.hcaptcha.com',
-                  'chatgpt.com',
-                  'sourceforge.net',
-                  'snapp.ir',
-                  'digikala.com',
-                  'divar.ir',
-                  'cafebazaar.ir',
-                  'shaparak.ir',
-                  'aparat.com',
-                  'soft98.ir',
-                  'varzesh3.com'
-              ];
-              
-              let resolvedIps = new Set();
-              const cleanIpsTextarea = document.getElementById('cfg-ips');
-              
-              async function resolveOne(domain) {
-                  try {
-                      const res = await fetch(\`https://cloudflare-dns.com/dns-query?name=\${encodeURIComponent(domain)}&type=A\`, { 
-                          headers: { 'accept': 'application/dns-json' }
-                      });
-                      const data = await res.json();
-                      if (data && data.Answer) {
-                          data.Answer.forEach(ans => {
-                              if (ans.type === 1 && ans.data) {
-                                  resolvedIps.add(ans.data);
-                              }
-                          });
-                      }
-                  } catch(e) {
-                      try {
-                          const res = await fetch(\`https://dns.google/resolve?name=\${encodeURIComponent(domain)}&type=A\`);
-                          const data = await res.json();
-                          if (data && data.Answer) {
-                              data.Answer.forEach(ans => {
-                                  if (ans.type === 1 && ans.data) {
-                                      resolvedIps.add(ans.data);
-                                  }
-                              });
-                          }
-                      } catch(ge) {}
-                  }
-              }
-              
-              try {
-                  await Promise.all(domains.map(d => resolveOne(d)));
-              } catch(err) {
-                  console.error("DNS resolving process encountered an issue:", err);
-              }
-              
-              if (resolvedIps.size > 0) {
-                  const ipList = Array.from(resolvedIps).join('\\n');
-                  cleanIpsTextarea.value = ipList;
-                  cleanIpsTextarea.dispatchEvent(new Event('input'));
-                  cleanIpsTextarea.dispatchEvent(new Event('change'));
-                  alert((lang === 'fa' ? 'با موفقیت حل شد و ' : 'Successfully resolved and loaded ') + resolvedIps.size + (lang === 'fa' ? ' آی‌پۄ1�7 تمیز بارگذاری شد!' : ' clean IPs!'));
-              } else {
-                  alert(lang === 'fa' ? 'خطا در تبدیل دامنه به آی‌پۄ1�7. لطفاً اتصال اینترنت یا DNS سفارشی خود را بررسی کنید.' : 'Failed to resolve domains to IPs. Please verify your internet connection or custom DNS.');
-              }
-              
-              btn.disabled = false;
-              btn.innerHTML = origText;
-          }
 
           async function checkUpdate() {
               try {
